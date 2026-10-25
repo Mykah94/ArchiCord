@@ -1,0 +1,55 @@
+# Secrets and local environment (KEEP PRIVATE)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*token*.txt
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Bot runtime data (may contain private seed/player information)
+archicord_data/
+deathlinks/
+archicord_hints.json
+archicord_status.json
+archicord_seen_items.json
+tracker/settings/*
+!tracker/settings/.gitkeep
+tracker/exports/*
+!tracker/exports/.gitkeep
+!tracker/exports/*.example
+tracker/seeds/*
+!tracker/seeds/.gitkeep
+tracker/yamls/*
+!tracker/yamls/.gitkeep
+tracker/apworlds/*
+!tracker/apworlds/.gitkeep
+
+# Never accidentally publish downloaded Archipelago seed packages or worlds
+*.apworld
+*.archipelago
+AP_*.zip
+*Spoiler*.txt
+
+# Editor, OS, logs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
