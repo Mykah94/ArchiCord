@@ -148,7 +148,7 @@ def history(data_root: Path, limit: int = 100) -> list[dict]:
         return []
     result = []
     for path in sorted(data_root.glob("*/state.json"))[:2000]:
-        if path.is_symlink() or not path.is_file():
+        if path.is_symlink() or path.parent.is_symlink() or not path.is_file():
             continue
         try:
             state = read_json(path)
@@ -290,7 +290,7 @@ def backup_directory(root: Path) -> Path:
 
 def list_backups(root: Path) -> list[dict]:
     folder = backup_directory(root)
-    if not folder.is_dir():
+    if folder.is_symlink() or not folder.is_dir():
         return []
     rows = []
     for path in sorted(folder.glob("archicord-*.zip"), reverse=True):
@@ -330,6 +330,8 @@ def _safe_sources(root: Path):
 def create_backup(root: Path, *, keep: int = 10) -> dict:
     """Local-only backup; zip can contain tokens and must never be served by HTTP."""
     folder = backup_directory(root)
+    if folder.is_symlink() or not folder.resolve().is_relative_to(root.resolve()):
+        raise ValueError("Unsafe backup directory")
     folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     name = f"archicord-{stamp}-{os.urandom(3).hex()}.zip"
@@ -363,13 +365,19 @@ def create_backup(root: Path, *, keep: int = 10) -> dict:
 def verify_backup(root: Path, name: str) -> dict:
     if not re.fullmatch(r"archicord-[A-Za-z0-9T-]+\.zip", name):
         raise ValueError("Invalid backup filename")
-    path = backup_directory(root) / name
+    folder = backup_directory(root)
+    if folder.is_symlink() or not folder.resolve().is_relative_to(root.resolve()):
+        raise ValueError("Unsafe backup directory")
+    path = folder / name
     if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_ARCHIVE_BYTES:
         raise ValueError("Backup unavailable or too large")
     with zipfile.ZipFile(path) as archive:
         infos = archive.infolist()
         if len(infos) > MAX_ARCHIVE_MEMBERS + 1 or len({i.filename for i in infos}) != len(infos):
             raise ValueError("Invalid backup entries")
+        manifest_info = archive.getinfo("_archicord_manifest.json")
+        if manifest_info.file_size > 1024 * 1024:
+            raise ValueError("Backup manifest too large")
         manifest = json.loads(archive.read("_archicord_manifest.json"))
         expected = manifest.get("files", {})
         if manifest.get("schema") != 1 or not isinstance(expected, dict):
@@ -425,9 +433,20 @@ def restore_backup(root: Path, name: str, *, stopped: bool) -> dict:
     except Exception:
         # Reapply the known-good, locally created safety backup without recursion.
         with zipfile.ZipFile(backup_directory(root) / safety["name"]) as archive:
+            old_names = set(archive.namelist())
             for filename in written:
-                if filename in archive.namelist():
-                    target = root / filename
-                    target.write_bytes(archive.read(filename))
+                target = root / filename
+                if filename in old_names:
+                    replacement = target.with_name(f".{target.name}.{os.getpid()}.rollback")
+                    try:
+                        with replacement.open("xb") as handle:
+                            handle.write(archive.read(filename))
+                            handle.flush()
+                            os.fsync(handle.fileno())
+                        os.replace(replacement, target)
+                    finally:
+                        replacement.unlink(missing_ok=True)
+                else:
+                    target.unlink(missing_ok=True)
         raise
     return {"restored": preview["files"], "safety_backup": safety["name"]}
