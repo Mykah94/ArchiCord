@@ -17,11 +17,14 @@ import secrets
 import subprocess
 import sys
 import threading
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urlsplit, parse_qs
 
 from tracker.apworld_manager import scan_worlds, load_selection, save_selection
 from tracker.multi_instances import read_instances, save_instances, sanitized_instances, statuses
 from tracker.instances_webui import render_instances
+from tracker.obs_log_webui import render_obs_log
+from tracker.overlay_events import recent_events
+from tracker.multi_instances import instance_directory
 from archicord_dashboard import PAGES as DASHBOARD_PAGES, render_dashboard
 from archicord_core import (read_json, history, compatibility, notification_config,
     save_notification_config, create_backup, list_backups, verify_backup,
@@ -651,6 +654,41 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.valid_local_host():
             return self.reply(403, {'ok': False, 'message': 'Lokaler Host erforderlich.'})
+        parsed_url = urlsplit(self.path)
+        if parsed_url.path == '/obs-log':
+            ident = parse_qs(parsed_url.query).get('instance', [''])[0]
+            try:
+                rows = read_instances(v3_data_directory())
+                if ident not in {row['id'] for row in rows}:
+                    return self.reply(404, {'ok': False, 'message': 'Unknown room'})
+            except (ValueError, OSError, TypeError):
+                return self.reply(404, {'ok': False, 'message': 'Unknown room'})
+            raw = render_obs_log(ident).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header('Content-Length', str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+            return
+        if parsed_url.path == '/api/obs-log':
+            ident = parse_qs(parsed_url.query).get('instance', [''])[0]
+            try:
+                rows = read_instances(v3_data_directory())
+                room = next((r for r in rows if r['id'] == ident), None)
+                if room is None:
+                    return self.reply(404, {'ok': False, 'message': 'Unknown room'})
+                state = next((x['status'] for x in statuses(v3_data_directory()) if x['id'] == ident), {})
+                current_seed = state.get('seed') if state.get('connected') else None
+                events = recent_events(instance_directory(v3_data_directory(), ident),
+                                       limit=40, seed=current_seed)
+                return self.reply(200, {'ok': True, 'name': room['name'],
+                                        'seed': current_seed or '', 'events': events})
+            except (ValueError, OSError, TypeError):
+                return self.reply(400, {'ok': False, 'message': 'Cannot read local OBS events'})
         if self.path.startswith('/assets/'):
             return self.serve_asset(self.path[len('/assets/'):])
         if self.path == '/':
