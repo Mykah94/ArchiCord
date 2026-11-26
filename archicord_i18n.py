@@ -5,6 +5,8 @@ known ArchiCord strings, never on unknown game/player text.
 """
 from __future__ import annotations
 
+import copy
+
 TEXTS = {
     "✨ Progression-Item ✨": "✨ Progression Item ✨",
     "🪤 Trap-Item": "🪤 Trap Item",
@@ -54,7 +56,7 @@ def localize_embed(embed, language: str):
     """
     if language != "en":
         return embed
-    translated = embed.copy()
+    translated = copy.deepcopy(embed)
     if translated.title:
         title = translated.title
         for old, new in TEXTS.items():
