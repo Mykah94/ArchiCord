@@ -24,6 +24,38 @@
 
 **Nicht Teil der Live-Fortschrittsübersicht:** Progression-Item-Zähler und Trap-Zähler (diese Events werden bei Bedarf weiterhin separat verarbeitet).
 
+## English – Project Overview
+
+**ArchiCord** is a community Discord bot for [Archipelago](https://archipelago.gg/) multiworld sessions. It provides live player-status boards, item and trap notifications, hints, goal announcements, DeathLink leaderboards, seed-specific persistence and a local web control panel.
+
+When a compatible **Universal Tracker** installation is available, ArchiCord can also display currently reachable, unfinished locations (“doable checks”). These are taken from tracker-confirmed logic data, **not** inferred from missing locations. The APWorld manager lets you select which locally installed games should be tracked.
+
+### Features
+
+| Feature | Description |
+| --- | --- |
+| Player status | Online/offline information and game assignments |
+| Hints, items and traps | Discord embeds and persistent hint boards |
+| DeathLinks | Per-seed leaderboard and special messages for every 25th death |
+| Goals and progress | Goal announcements, status statistics and optional doable checks |
+| Universal Tracker | Optional local CLI integration for supported worlds and YAMLs |
+| Local Web UI | Start, stop and restart the bot; manage settings, logs and APWorld selection |
+| Seed persistence | Stores state separately for Archipelago server, seed, team and bot slot |
+| Slash commands | `/archi status`, `hints`, `deaths`, `fortschritt`, `statistik`, `funktionen` |
+
+### Quick start
+
+1. Install **Python 3.11 or 3.13** and run `python -m pip install -r requirements.txt`.
+2. Copy `.env.example` to `.env`, then configure the Discord token, Archipelago connection, bot slot, game and Discord channel IDs.
+3. On Windows, run `START_WEBUI.bat`; on Linux/macOS, use `sh start_webui.sh`.
+4. Open **http://127.0.0.1:8765/** to start the bot and view its logs. Use **/apworlds** to manage tracker game selection.
+
+**Security:** The Web UI is intended **only for localhost**. Never expose it to the internet. Do not commit `.env`, private seed files, player YAMLs or other credentials.
+
+**Current limitations:** The original Web UI background/logo assets are missing from this repository. The restored Tracker bridge and APWorld manager have automated regression coverage, but real Discord, Archipelago and Windows Universal Tracker integration still require live verification. Compatibility with every APWorld cannot be guaranteed. See [restoration and verification notes](docs/RESTORATION_REVIEW.md).
+
+---
+
 ## Schnellstart (Windows)
 
 1. **Python 3.11 oder 3.13** installieren. Python 3.15 wird von diesem Repository nicht durchgehend getestet.
