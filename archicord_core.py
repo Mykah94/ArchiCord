@@ -217,6 +217,8 @@ def notification_config(path: Path) -> dict:
     cooldown = raw.get("cooldown_seconds", {})
     channels = raw.get("channels", {})
     lang = raw.get("language", "de")
+    web_lang = raw.get("web_language", lang)
+    discord_lang = raw.get("discord_language", lang)
     return {
         "enabled": {kind: enabled.get(kind, True) is not False for kind in EVENT_TYPES}
                    if isinstance(enabled, dict) else {},
@@ -225,6 +227,8 @@ def notification_config(path: Path) -> dict:
         "channels": {kind: str(channels.get(kind, "")) for kind in EVENT_TYPES}
                     if isinstance(channels, dict) else {},
         "language": lang if lang in SUPPORTED_LANGUAGES else "de",
+        "web_language": web_lang if web_lang in SUPPORTED_LANGUAGES else "de",
+        "discord_language": discord_lang if discord_lang in SUPPORTED_LANGUAGES else "de",
     }
 
 
@@ -235,11 +239,15 @@ def save_notification_config(path: Path, config: object) -> dict:
     cooldown = config.get("cooldown_seconds", {})
     channels = config.get("channels", {})
     lang = config.get("language", "de")
+    web_lang = config.get("web_language", lang)
+    discord_lang = config.get("discord_language", lang)
     if not isinstance(enabled, dict) or not isinstance(cooldown, dict) or not isinstance(channels, dict):
         raise ValueError("Invalid notification configuration")
-    if lang not in SUPPORTED_LANGUAGES:
+    if any(value not in SUPPORTED_LANGUAGES for value in (lang, web_lang, discord_lang)):
         raise ValueError("Unsupported language")
-    result = {"language": lang, "enabled": {}, "cooldown_seconds": {}, "channels": {}}
+    result = {"language": lang, "web_language": web_lang,
+              "discord_language": discord_lang, "enabled": {},
+              "cooldown_seconds": {}, "channels": {}}
     for kind in EVENT_TYPES:
         value = enabled.get(kind, True)
         if not isinstance(value, bool):
