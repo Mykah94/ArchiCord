@@ -145,15 +145,36 @@ def history(data_root: Path, limit: int = 100) -> list[dict]:
     if not data_root.exists():
         return []
     result = []
-    for path in sorted(data_root.glob("*/state.json"))[:2000]:
-        if path.is_symlink() or path.parent.is_symlink() or not path.is_file():
+    primary_paths = list(data_root.glob("*/state.json"))
+    room_paths = list(data_root.glob("instances/*/seeds/*/state.json"))
+    for path in sorted(primary_paths + room_paths)[:2000]:
+        if (path.is_symlink() or any(parent.is_symlink() for parent in path.parents
+                 if parent != data_root.parent and parent.is_relative_to(data_root))
+                or not path.is_file()):
             continue
         try:
             state = read_json(path)
-            if isinstance(state, dict):
+            if not isinstance(state, dict):
+                continue
+            if path in room_paths:
+                if not isinstance(state.get("goals", []), list):
+                    continue
+                converted = {
+                    "seed_name": state.get("seed", ""), "team": state.get("team", 0),
+                    "goals": {str(v): True for v in state.get("goals", [])},
+                    "death_counts": state.get("death_counts", {}),
+                    "stats": {"progression": len(state.get("items_seen", [])), "traps": 0},
+                    "own_checks": {"known": False, "checked": [], "missing": []},
+                    "activity_v3": [],
+                }
+                record = summarize_seed(converted, filename=path.parent.name)
+                record["instance"] = path.parents[2].name
+                record["checks_available"] = False
+            else:
                 record = summarize_seed(state, filename=path.parent.name)
-                record["updated"] = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(timespec="seconds")
-                result.append(record)
+                record["instance"] = "primary"
+            record["updated"] = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(timespec="seconds")
+            result.append(record)
         except (ValueError, OSError, TypeError, OverflowError):
             continue
     result.sort(key=lambda x: x["updated"], reverse=True)
