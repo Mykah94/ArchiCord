@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -53,9 +54,9 @@ def atomic_json(path: Path, value: Any) -> None:
         tmp.unlink(missing_ok=True)
 
 
-def safe_read(path: Path, fallback: Any) -> Any:
+def safe_read(path: Path, fallback: Any, *, limit: int = MAX_CONFIG_SIZE) -> Any:
     try:
-        if path.stat().st_size > MAX_CONFIG_SIZE:
+        if path.stat().st_size > limit:
             raise ValueError("Configuration file too large")
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -155,6 +156,9 @@ def statuses(root: Path) -> list[dict]:
         value = safe_read(path, {})
         if not isinstance(value, dict):
             value = {}
+        # A stopped bot must not appear connected from an old status file.
+        if time.time() - float(value.get("updated_at", 0) or 0) > 90:
+            value = {**value, "connected": False, "error": "Status is stale"}
         result.append({"id": row["id"], "name": row["name"],
                        "enabled": row["enabled"], "status": value})
     return result
