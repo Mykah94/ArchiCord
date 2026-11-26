@@ -29,6 +29,8 @@ from tracker.room_checks_webui import render as render_room_checks
 from tracker.overlay_events import recent_events
 from tracker.multi_instances import instance_directory
 from archicord_dashboard import PAGES as DASHBOARD_PAGES, render_dashboard
+from discord_credentials import (supported as secure_token_supported, get_saved_token,
+    store_token, normalize_token, CredentialStoreUnavailable)
 from archicord_core import (read_json, history, compatibility, notification_config,
     save_notification_config, create_backup, list_backups, verify_backup,
     restore_backup, health)
@@ -84,13 +86,52 @@ def read_env_value(key):
 
 
 def token_configured():
+    if secure_token_supported() and get_saved_token():
+        return True
     token = read_env_value('DISCORD_TOKEN')
-    return bool(token and not any(word in token.upper() for word in ('HIER_EINTRAGEN', 'YOUR_TOKEN', 'DEIN_TOKEN', 'PLACEHOLDER')))
+    return bool(token and not any(word in token.upper() for word in
+                ('HIER_EINTRAGEN', 'YOUR_TOKEN', 'DEIN_TOKEN', 'PLACEHOLDER')))
+
+
+def migrate_legacy_token():
+    """Move a real legacy .env token to the private Windows user vault once."""
+    if not secure_token_supported() or not ENV.exists():
+        return False
+    old = read_env_value('DISCORD_TOKEN')
+    if not old or any(word in old.upper() for word in
+                      ('HIER_EINTRAGEN', 'YOUR_TOKEN', 'DEIN_TOKEN', 'PLACEHOLDER')):
+        return False
+    if not get_saved_token():
+        store_token(old)
+    lines = ENV.read_text(encoding='utf-8-sig').splitlines(keepends=True)
+    output = []
+    replaced = False
+    for line in lines:
+        if re.match(r'^\s*DISCORD_TOKEN\s*=', line):
+            ending = '\r\n' if line.endswith('\r\n') else '\n'
+            output.append('DISCORD_TOKEN=' + ending)
+            replaced = True
+        else:
+            output.append(line)
+    if not replaced:
+        return False
+    tmp = ENV.with_name('.' + ENV.name + '.token-migration-' + secrets.token_hex(5) + '.tmp')
+    try:
+        fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, 'w', encoding='utf-8') as fp:
+            fp.writelines(output)
+            fp.flush()
+            os.fsync(fp.fileno())
+        os.replace(tmp, ENV)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return True
 
 
 def ensure_env():
     # Eine vorhandene .env niemals beim WebUI-Start ersetzen.
     if ENV.exists():
+        migrate_legacy_token()
         return
     template = ENV_EXAMPLE.read_text(encoding='utf-8') if ENV_EXAMPLE.exists() else ''
     if not template:
@@ -140,9 +181,13 @@ def save_settings(values):
         raise ValueError('Ungültiger Discord-Token.')
     new_token = (new_token or '').strip()
     if new_token:
-        if any(c in new_token for c in '\r\n\x00') or len(new_token) > 300 or any(c.isspace() for c in new_token):
-            raise ValueError('Ungültiger Discord-Token.')
-        clean['DISCORD_TOKEN'] = new_token
+        value = normalize_token(new_token)
+        if secure_token_supported():
+            store_token(value)
+            migrate_legacy_token()
+        else:
+            # Legacy, non-Windows compatibility.
+            clean['DISCORD_TOKEN'] = value
     for key in FIELDS:
         if key not in values:
             continue
@@ -196,7 +241,9 @@ def redact_text(value):
     from urllib.parse import quote
     result = str(value)
     for name in ('DISCORD_TOKEN', 'AP_PASSWORD'):
-        secret = read_env_value(name)
+        secret = (get_saved_token() or read_env_value(name)
+                  if name == 'DISCORD_TOKEN' and secure_token_supported()
+                  else read_env_value(name))
         if not secret:
             continue
         for representation in (secret, quote(secret, safe=''), quote(secret, safe='').lower()):
@@ -270,6 +317,8 @@ def start_bot():
         BOT_STATUS.update(discord='starting', archipelago='offline', last_error='', exit_code=None)
         child_env = os.environ.copy()
         child_env['ARCHICORD_ENV_FILE'] = str(ENV.resolve())
+        if secure_token_supported() and get_saved_token():
+            child_env.pop('DISCORD_TOKEN', None)
         PROCESS = subprocess.Popen(
             [sys.executable, '-u', str(BOT)], cwd=ROOT, env=child_env,
             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
