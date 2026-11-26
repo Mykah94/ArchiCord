@@ -418,7 +418,8 @@ def restore_backup(root: Path, name: str, *, stopped: bool) -> dict:
     if not stopped:
         raise ValueError("Stop the bot before restoring a backup")
     preview = verify_backup(root, name)
-    safety = create_backup(root, keep=20)
+    # Preserve even older user-selected archives during the safety-copy step.
+    safety = create_backup(root, keep=40)
     archive_path = backup_directory(root) / name
     written = []
     try:
