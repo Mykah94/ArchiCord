@@ -12,6 +12,7 @@ import time
 import webbrowser
 
 from overlay_sounds import available_sounds,play_sound
+from screen_notifications import ScreenNotificationManager
 
 ROOT=Path(__file__).resolve().parent
 
@@ -30,6 +31,9 @@ class DesktopStudio:
         self.recent_events=recent_events
         self.data_root=DATA_ROOT
         self.root=tk.Tk()
+        self.notifications=ScreenNotificationManager(self.root)
+        self.popups_enabled=tk.BooleanVar(value=False)
+        self.last_event_id=None
         self.root.title("ArchiCord · Overlay Studio")
         self.root.geometry("790x720")
         self.root.configure(bg="#10172c")
@@ -78,7 +82,8 @@ class DesktopStudio:
             row=tk.Frame(body,bg="#10172c");row.grid(row=number,column=1,sticky="ew",pady=5)
             if key in ("profile_id","instance","theme","effect"):
                 ctrl=self.ttk.Combobox(row,textvariable=getattr(self,key),state="readonly")
-                ctrl.bind("<<ComboboxSelected>>",lambda event:self.on_select())
+                if key=='profile_id':
+                    ctrl.bind("<<ComboboxSelected>>",lambda event:self.on_select())
             else:
                 ctrl=tk.Entry(row,textvariable=getattr(self,key),fg="#20233a",font=("Segoe UI",11))
             ctrl.pack(fill="x")
@@ -93,6 +98,8 @@ class DesktopStudio:
         self.sounds=self.ttk.Combobox(sounds,textvariable=self.sound,state="readonly",width=30)
         self.sounds.pack(side="left",padx=8)
         self.button(sounds,"▶ Play",lambda:play_sound(ROOT,self.sound.get())).pack(side="left")
+        tk.Checkbutton(sounds,text='Desktop pop-ups',variable=self.popups_enabled,
+            bg='#10172c',fg='#ffffff',selectcolor='#222a45',activebackground='#10172c').pack(side='left')
         self.label(self.root,self.message.get()).pack_forget()
         tk.Label(self.root,textvariable=self.message,fg="#a6e4cc",bg="#10172c",
                  wraplength=680,anchor="w").pack(fill="x",padx=25,pady=15)
@@ -110,6 +117,8 @@ class DesktopStudio:
     def on_select(self):
         p=self.current()
         if p is None:return
+        if self.data.get('selected')!=p['id']:
+            self.last_event_id=None
         self.data["selected"]=p["id"]
         for key,control in [("profile_name","name"),("instance","instance"),("theme","theme"),
                             ("effect","effect"),("font_size","font_size"),("max_items","max_items")]:
@@ -164,6 +173,19 @@ class DesktopStudio:
                        for ev in events]
                 self.log.configure(state="normal");self.log.delete("1.0","end")
                 self.log.insert("end","\n".join(lines));self.log.configure(state="disabled")
+        if self.popups_enabled.get():
+            p=self.current()
+            if p and p.get('instance'):
+                events=self.recent_events(self.instance_directory(self.data_root,p['instance']),limit=20)
+                newest=max((event['id'] for event in events),default=0)
+                if self.last_event_id is not None:
+                    for event in events:
+                        if event['id']>self.last_event_id:
+                            self.notifications.show(event['category'],event.get('item') or event['category'],
+                                                    event.get('player',''))
+                self.last_event_id=newest
+        else:
+            self.last_event_id=None
         self.root.after(2000,self.tick)
     def run(self):self.root.mainloop()
 
