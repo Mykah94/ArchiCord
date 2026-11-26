@@ -38,7 +38,7 @@ def progression_only(flags: object) -> bool:
 
 def fresh_state(seed: str, team: int) -> dict:
     return {"seed": seed, "team": team, "items_seen": [], "death_event_keys": [],
-            "death_counts": {}, "goals": [], "started_at": int(time.time())}
+            "death_counts": {}, "goals": [], "hints_seen": [], "started_at": int(time.time())}
 
 
 class RoomObserver:
@@ -182,6 +182,34 @@ class RoomObserver:
             self.state["items_seen"] = self.state["items_seen"][-15000:]
             self.save_state()
 
+    async def process_hint(self, packet: dict) -> None:
+        """Only progression hints are announced; persisted per room and seed."""
+        item = packet.get("item")
+        if not self.connected or not isinstance(item, dict) or not progression_only(item.get("flags", 0)):
+            return
+        try:
+            receiver = int(packet["receiving"])
+            finder = int(item["player"])
+            item_id = int(item["item"])
+            location_id = int(item["location"])
+        except (KeyError, TypeError, ValueError):
+            return
+        key = item_key(item, receiver)
+        found = bool(item.get("found", packet.get("found", False)))
+        marker = key + ("-found" if found else "-open")
+        if marker in self.state.get("hints_seen", []):
+            return
+        name = self.items.get(self.game(receiver), {}).get(item_id, f"Item {item_id}")
+        location = self.locations.get(self.game(finder), {}).get(location_id, f"Location {location_id}")
+        embed = self.embed("🔎 Progression Hint",
+            f"**{text(name)}** · {text(location)}\\n"
+            f"From **{text(self.player(finder))}** → **{text(self.player(receiver))}**"
+            + (" · ✅ Found" if found else " · ❓ Open"), 0x318cf8)
+        if await self.send("hint_channel_id", embed):
+            self.state.setdefault("hints_seen", []).append(marker)
+            self.state["hints_seen"] = self.state["hints_seen"][-5000:]
+            self.save_state()
+
     async def deathlink(self, packet: dict) -> None:
         data = packet.get("data")
         if not self.connected or not isinstance(data, dict):
@@ -265,6 +293,8 @@ class RoomObserver:
             kind = packet.get("type")
             if kind == "ItemSend":
                 await self.process_item(packet)
+            elif kind == "Hint":
+                await self.process_hint(packet)
             elif kind == "Goal" and packet.get("team", self.team) == self.team:
                 slot = str(packet.get("slot", ""))
                 if slot and slot not in self.state.setdefault("goals", []):
