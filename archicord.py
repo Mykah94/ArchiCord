@@ -17,6 +17,7 @@ import re
 import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
 from tracker.multi_seed_sessions import MultiSeedManager
+from tracker.community_commands import RunCommands, SlotCommands, WishlistCommands
 from tracker.multi_instances import read_instances
 from archipelago_releases import check_release_once
 from archicord_core import add_activity, atomic_json, summarize_seed, notification_config, notification_decision, item_routes, checks_view
@@ -536,6 +537,8 @@ class ArchipelagoDiscordBot(discord.Client):
     async def setup_hook(self) -> None:
         self.board_event = asyncio.Event()
         self.ut_wakeup = asyncio.Event()
+        for group in (RunCommands(self), SlotCommands(self), WishlistCommands(self)):
+            self.tree.add_command(group)
         # Für sofort sichtbare Kommandos in der gewünschten Guild DISCORD_GUILD_ID setzen.
         try:
             if DISCORD_GUILD_ID:

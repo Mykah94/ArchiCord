@@ -23,6 +23,9 @@ from tracker.apworld_manager import scan_worlds, load_selection, save_selection
 from tracker.multi_instances import read_instances, save_instances, sanitized_instances, statuses
 from tracker.instances_webui import render_instances
 from tracker.obs_log_webui import render_obs_log
+from tracker.tracker_settings import load_settings,save_settings,diagnose
+from tracker.tracker_ui import render as render_tracker_settings
+from tracker.room_checks_webui import render as render_room_checks
 from tracker.overlay_events import recent_events
 from tracker.multi_instances import instance_directory
 from archicord_dashboard import PAGES as DASHBOARD_PAGES, render_dashboard
@@ -419,7 +422,7 @@ button:hover{filter:brightness(1.13)}
 
 HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Control Center</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a><a class="nav-pill" href="/instanzen"><span class="icon-badge green">🌍</span>Multiworlds</a></nav>
+<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a><a class="nav-pill" href="/instanzen"><span class="icon-badge green">🌍</span>Multiworlds</a><a class="nav-pill" href="/tracker-settings">🧭 Tracker Settings</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">ArchiCord</span> Control Center</h1><p>Verwalte deinen Archipelago-Bot mit dem neuen ArchiCord-WebUI-Look: Serververbindung, Live-Status, Konfiguration und Bot-Konsole an einem Ort.</p></div></div></section>
 <div class="grid two">
   <section class="card">
@@ -479,7 +482,7 @@ refresh();setInterval(refresh,2500);
 
 APWORLD_HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord · APWorld-Verwaltung</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a><a class="nav-pill" href="/instanzen"><span class="icon-badge green">🌍</span>Multiworlds</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a><a class="nav-pill" href="/instanzen"><span class="icon-badge green">🌍</span>Multiworlds</a><a class="nav-pill" href="/tracker-settings">🧭 Tracker Settings</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">APWorld-Verwaltung</span></h1><p>Durchsuche installierte <code>.apworld</code>-Dateien und lege fest, welche Spiele ArchiCord per Universal Tracker live abfragen soll.</p></div></div></section>
 <section class="card"><div class="toolbar"><button class="secondary" id="rescan">↻ APWorlds neu einlesen</button><button class="secondary" id="seedOnly">🎮 Aktuelle Seed-Spiele auswählen</button><button class="secondary" id="selectAll">Alle gültigen</button><button class="secondary" id="selectNone">Keine</button></div>
 <p id="summary" class="section-sub">Lese installierte APWorlds …</p><p id="seedInfo" class="section-sub"></p><p class="warn" id="warnings"></p><div class="toolbar"><input id="search" type="search" placeholder="Spielname oder APWorld-Datei suchen …"><span id="counter" class="number"></span></div></section>
@@ -572,7 +575,7 @@ readCatalog();
 
 RESOURCES_HTML = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Resources</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot Control</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld Manager</a><a class="nav-pill active" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a><a class="nav-pill" href="/instanzen"><span class="icon-badge green">🌍</span>Multiworlds</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot Control</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld Manager</a><a class="nav-pill active" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a><a class="nav-pill" href="/instanzen"><span class="icon-badge green">🌍</span>Multiworlds</a><a class="nav-pill" href="/tracker-settings">🧭 Tracker Settings</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord icon"><div class="hero-copy"><h1><span class="title-gradient">Archipelago Resources</span></h1><p>Official websites, software releases, and help for your Multiworld adventures.</p></div></div></section>
 <div class="grid two">
 <section class="card"><div class="banner"><span class="icon-badge blue">🌍</span><div><strong>Official Archipelago Website</strong><span class="meta">Games, guides and Multiworld information.</span></div></div><p class="section-sub">Visit the official Archipelago website to learn about the software and supported games.</p><p><a href="https://archipelago.gg/" target="_blank" rel="noopener noreferrer">🌐 Open archipelago.gg ↗</a></p></section>
@@ -714,6 +717,56 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+        elif parsed_url.path == '/room-checks':
+            ident=parse_qs(parsed_url.query).get('instance',[''])[0]
+            try:
+                if ident not in {row['id'] for row in read_instances(v3_data_directory())}:
+                    return self.reply(404,{'ok':False,'message':'Unknown instance'})
+            except (OSError,ValueError):
+                return self.reply(404,{'ok':False,'message':'Unknown instance'})
+            raw=render_room_checks(BASE_STYLE,ident).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type','text/html; charset=utf-8')
+            self.send_header('Content-Security-Policy',"default-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'")
+            self.send_header('Cache-Control','no-store')
+            self.send_header('Content-Length',str(len(raw)))
+            self.end_headers();self.wfile.write(raw)
+        elif self.path == '/tracker-settings':
+            raw=render_tracker_settings(BASE_STYLE,CSRF).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type','text/html; charset=utf-8')
+            self.send_header('Cache-Control','no-store')
+            self.send_header('X-Content-Type-Options','nosniff')
+            self.send_header('Content-Security-Policy',"default-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'")
+            self.send_header('Content-Length',str(len(raw)))
+            self.end_headers();self.wfile.write(raw)
+        elif parsed_url.path == '/api/instances/checks':
+            ident=parse_qs(parsed_url.query).get('instance',[''])[0]
+            try:
+                rows=read_instances(v3_data_directory())
+                if ident not in {row['id'] for row in rows}:
+                    return self.reply(404,{'ok':False,'message':'Unknown Multiworld instance'})
+                root=instance_directory(v3_data_directory(),ident)
+                checked=read_json(root/'ut_checks.json')
+                status=read_json(root/'status.json')
+                if (not isinstance(checked,dict) or not isinstance(status,dict)
+                    or not status.get('connected') or checked.get('seed')!=status.get('seed')
+                    or checked.get('team')!=status.get('team')
+                    or __import__('time').time()-float(checked.get('updated_at',0))>360):
+                    return self.reply(200,{'ok':True,'known':False,'checks':[]})
+                names=checked.get('locations',{})
+                result=[{'id':i,'name':names.get(str(i),f'Location {i}'),'status':'doable'}
+                        for i in checked.get('doable',[])[:1500]]
+                return self.reply(200,{'ok':True,'known':True,'checks':result,
+                    'seed':checked['seed'],'team':checked['team']})
+            except (OSError,ValueError,TypeError):
+                return self.reply(400,{'ok':False,'message':'Cannot read tracker checks'})
+        elif self.path == '/api/tracker/settings':
+            try:
+                settings=load_settings(ROOT)
+                self.reply(200,{'ok':True,'settings':settings,'diagnostics':diagnose(settings)})
+            except (OSError,ValueError,TypeError):
+                self.reply(400,{'ok':False,'message':'Tracker settings invalid'})
         elif self.path == '/instanzen':
             raw = render_instances(BASE_STYLE, CSRF).encode('utf-8')
             self.send_response(200)
@@ -840,7 +893,7 @@ class Handler(BaseHTTPRequestHandler):
                              '/api/apworlds/save', '/api/apworlds/save_restart',
                              '/api/v3/notifications/save', '/api/v3/backup/create',
                              '/api/v3/backup/verify', '/api/v3/backup/restore',
-                             '/api/instances/save'):
+                             '/api/instances/save', '/api/tracker/settings/save'):
             return self.reply(404, {'ok': False, 'message': 'Unbekannte Aktion.'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
@@ -849,6 +902,10 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length) or b'{}')
             if not isinstance(data, dict):
                 raise ValueError('Ungültige Anfrage.')
+            if self.path == '/api/tracker/settings/save':
+                with LOCK:
+                    settings=save_settings(ROOT,data.get('settings'))
+                return self.reply(200,{'ok':True,'settings':settings,'diagnostics':diagnose(settings)})
             if self.path == '/api/instances/save':
                 with LOCK:
                     result = save_instances(v3_data_directory(), data.get('instances'))
