@@ -192,3 +192,34 @@ def test_obs_routes_return_html_and_redacted_json(tmp_path,monkeypatch):
             assert "private_token_never_expose" not in body
     finally:
         server.shutdown();server.server_close();thread.join(timeout=3)
+
+
+def test_v3_history_includes_parallel_room_seeds(tmp_path):
+    from archicord_core import history
+    from tracker.multi_instances import atomic_json
+    p=seed_path(tmp_path,"room1","wss://archipelago.gg:54001","slot","seed-new",2)
+    atomic_json(p,{"seed":"seed-new","team":2,"items_seen":["item-key"],
+                   "death_counts":{"Alice":3},"goals":["2"]})
+    records=history(tmp_path)
+    assert len(records)==1
+    assert records[0]["instance"]=="room1"
+    assert records[0]["seed"]=="seed-new"
+    assert records[0]["team"]==2
+    assert records[0]["goals"]==1
+
+
+def test_discord_first_mode_import_without_legacy_slot(tmp_path):
+    import os
+    import subprocess
+    import sys
+    save_instances(tmp_path,[room()])
+    env=os.environ.copy()
+    env.update({"DISCORD_TOKEN":"DUMMY_NOT_REAL","ARCHICORD_DATA_DIR":str(tmp_path),
+                "AP_SLOT":"","AP_GAME":"","ITEM_CHANNEL_ID":"",
+                "HINT_CHANNEL_ID":"","DEATHLINK_CHANNEL_ID":"","ARCHICORD_ENV_FILE":str(tmp_path/"no-env-file")})
+    proc=subprocess.run([sys.executable,"-c",
+                         "import archicord;print(archicord.HAS_MULTI_ROOMS,archicord.LEGACY_PRIMARY_ENABLED)"],
+                        env=env,cwd=Path(__file__).resolve().parents[1],capture_output=True,
+                        text=True,timeout=12)
+    assert proc.returncode==0,proc.stderr
+    assert "True False" in proc.stdout
