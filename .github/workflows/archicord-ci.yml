@@ -86,6 +86,8 @@ jobs:
           from pathlib import Path
           import webui
           from archicord_dashboard import render_dashboard
+          from tracker.instances_webui import render_instances
+          from tracker.obs_log_webui import render_obs_log
 
           pages = {
               'control': webui.HTML,
@@ -93,6 +95,8 @@ jobs:
               'resources': webui.RESOURCES_HTML,
               'dashboard': render_dashboard('dashboard', webui.BASE_STYLE, 'test-csrf'),
               'notifications': render_dashboard('notifications', webui.BASE_STYLE, 'test-csrf'),
+              'multiworlds': render_instances(webui.BASE_STYLE, 'test-csrf'),
+              'obs-log': render_obs_log('room1'),
           }
           with tempfile.TemporaryDirectory() as tmp:
               for name, page in pages.items():
