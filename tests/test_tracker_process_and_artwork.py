@@ -79,3 +79,18 @@ def test_readme_discloses_missing_live_verification() -> None:
     assert "Live validation still required" in readme
     assert "not" in readme.lower()
     assert "No license has been granted" in readme
+
+
+def test_approved_multiworld_palette_and_headphone_free_logo() -> None:
+    root = Path(__file__).resolve().parents[1]
+    logo = (root / "webui_assets" / "archicord-logo.svg").read_text(encoding="utf-8")
+    banner = (root / "docs" / "assets" / "archicord-banner.svg").read_text(encoding="utf-8")
+    theme = (root / "webui.py").read_text(encoding="utf-8")
+    for shade in ("#ff4b8e", "#ffdb54", "#50e282", "#22d3ef", "#318cf8"):
+        assert shade in logo.lower()
+        assert shade in theme.lower()
+    assert "archicord-logo.svg" in theme
+    assert "archicord-bg.svg" in theme
+    assert "Archipelago Multiworld" in banner
+    assert 'font-family:Inter, Poppins, "Avenir Next"' in theme
+    assert 'headphones' not in logo.lower()
