@@ -209,9 +209,22 @@ def health_snapshot(root: Path, *, bot_running: bool, discord_status: str,
         free = shutil.disk_usage(root).free
     except OSError:
         free = None
+    # Universal Tracker: a recent export is evidence of recent data, not a
+    # guarantee that APWorld logic was successfully evaluated for every slot.
+    export = root / "tracker" / "exports" / "live_checks.json"
+    if export.is_file() and not export.is_symlink():
+        try:
+            export_age = max(0, int(now - export.stat().st_mtime))
+            tracker = {"status": "recent_data" if export_age <= 300 else "stale_data",
+                       "last_export_age_seconds": export_age}
+        except OSError:
+            tracker = {"status": "unknown", "last_export_age_seconds": None}
+    else:
+        tracker = {"status": "no_export", "last_export_age_seconds": None}
     return {"bot": "running" if bot_running else "stopped",
             "discord": discord_status if bot_running and discord_status in ("online", "starting", "error") else "offline",
             "archipelago_reported": ap_status if bot_running else "offline",
+            "universal_tracker": tracker,
             "instances": instances,
             "online_instances": sum(1 for inst in instances if inst["status"] == "online"),
             "free_disk_bytes": free,
