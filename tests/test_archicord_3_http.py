@@ -158,7 +158,7 @@ def test_zip_symlinks_rejected(tmp_path):
 
 
 def test_automatic_backup_creates_private_archive(tmp_path, monkeypatch):
-    (tmp_path / ".env").write_text("ARCHICORD_BACKUP_INTERVAL_HOURS=24\\nDISCORD_TOKEN=secret", encoding="utf-8")
+    (tmp_path / ".env").write_text("ARCHICORD_BACKUP_INTERVAL_HOURS=24\nDISCORD_TOKEN=secret", encoding="utf-8")
     monkeypatch.setattr(webui, "ROOT", tmp_path)
     monkeypatch.setattr(webui, "ENV", tmp_path / ".env")
     class FakeStop:
@@ -178,7 +178,7 @@ def test_automatic_backup_creates_private_archive(tmp_path, monkeypatch):
 
 
 def test_automatic_backups_can_be_disabled(tmp_path, monkeypatch):
-    (tmp_path / ".env").write_text("ARCHICORD_BACKUP_INTERVAL_HOURS=0\\n", encoding="utf-8")
+    (tmp_path / ".env").write_text("ARCHICORD_BACKUP_INTERVAL_HOURS=0\n", encoding="utf-8")
     monkeypatch.setattr(webui, "ROOT", tmp_path)
     monkeypatch.setattr(webui, "ENV", tmp_path / ".env")
     class FakeStop:
