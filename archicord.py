@@ -629,6 +629,11 @@ class ArchipelagoDiscordBot(discord.Client):
         if self.ut_wakeup is not None:
             self.ut_wakeup.set()
 
+    def record_activity(self, kind: str, **fields) -> None:
+        """Record a supplemental event without affecting legacy event handling."""
+        if self.state:
+            add_activity(self.state, kind, **fields)
+
     def publish_live_snapshot(self) -> None:
         """Expose sanitized per-seed progress to the local WebUI only."""
         if not self.seed_name or not self.state or self.own_slot is None:
@@ -1136,7 +1141,8 @@ class ArchipelagoDiscordBot(discord.Client):
         if event_key is not None and event_key in self.state["death_event_keys"]:
             return
 
-        add_activity(self.state, "deathlink", player=source, key=event_key or "")
+        if hasattr(self, "record_activity"):
+            self.record_activity("deathlink", player=source, key=event_key or "")
         previous_deaths = int(self.state["death_counts"].get(source, 0))
         self.state["death_counts"][source] = previous_deaths + 1
         if event_key is not None:
