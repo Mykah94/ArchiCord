@@ -316,7 +316,7 @@ body{
   color:var(--text);
   background:
     linear-gradient(rgba(6,10,20,.86), rgba(6,10,20,.92)),
-    url('/assets/archicord-bg.png') center/cover fixed no-repeat,
+    url('/assets/archicord-bg.svg') center/cover fixed no-repeat,
     radial-gradient(circle at top right, rgba(239,111,174,.18), transparent 32%),
     radial-gradient(circle at bottom left, rgba(103,126,255,.20), transparent 30%),
     var(--bg);
@@ -384,7 +384,7 @@ hr.soft{border:0;height:1px;background:linear-gradient(90deg, rgba(255,255,255,.
 HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Control Center</title><style>'''+BASE_STYLE+'''</style></head><body><main>
 <nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a></nav>
-<section class="hero"><div class="brand"><img src="/assets/archicord-logo.png" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">ArchiCord</span> Control Center</h1><p>Verwalte deinen Archipelago-Bot mit dem neuen ArchiCord-WebUI-Look: Serververbindung, Live-Status, Konfiguration und Bot-Konsole an einem Ort.</p></div></div></section>
+<section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">ArchiCord</span> Control Center</h1><p>Verwalte deinen Archipelago-Bot mit dem neuen ArchiCord-WebUI-Look: Serververbindung, Live-Status, Konfiguration und Bot-Konsole an einem Ort.</p></div></div></section>
 <div class="grid two">
   <section class="card">
     <div class="banner"><span class="icon-badge green">●</span><div><strong>Bot-Status</strong><span class="meta">Starten, stoppen und überwachen – direkt aus der WebUI.</span></div></div>
@@ -444,7 +444,7 @@ refresh();setInterval(refresh,2500);
 APWORLD_HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord · APWorld-Verwaltung</title><style>'''+BASE_STYLE+'''</style></head><body><main>
 <nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a></nav>
-<section class="hero"><div class="brand"><img src="/assets/archicord-logo.png" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">APWorld-Verwaltung</span></h1><p>Durchsuche installierte <code>.apworld</code>-Dateien und lege fest, welche Spiele ArchiCord per Universal Tracker live abfragen soll.</p></div></div></section>
+<section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">APWorld-Verwaltung</span></h1><p>Durchsuche installierte <code>.apworld</code>-Dateien und lege fest, welche Spiele ArchiCord per Universal Tracker live abfragen soll.</p></div></div></section>
 <section class="card"><div class="toolbar"><button class="secondary" id="rescan">↻ APWorlds neu einlesen</button><button class="secondary" id="seedOnly">🎮 Aktuelle Seed-Spiele auswählen</button><button class="secondary" id="selectAll">Alle gültigen</button><button class="secondary" id="selectNone">Keine</button></div>
 <p id="summary" class="section-sub">Lese installierte APWorlds …</p><p id="seedInfo" class="section-sub"></p><p class="warn" id="warnings"></p><div class="toolbar"><input id="search" type="search" placeholder="Spielname oder APWorld-Datei suchen …"><span id="counter" class="number"></span></div></section>
 <div id="list" class="list-grid"></div>
