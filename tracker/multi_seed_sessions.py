@@ -123,7 +123,7 @@ class RoomObserver:
         team = int(packet.get("team", 0))
         target = seed_path(self.data_dir, self.id, self.config["ap_url"],
                            self.config["slot"], seed, team)
-        stored = safe_read(target, {})
+        stored = safe_read(target, {}, limit=4 * 1024 * 1024)
         self.state = stored if (isinstance(stored, dict)
                     and stored.get("seed") == seed and stored.get("team") == team) else fresh_state(seed, team)
         for key, value in fresh_state(seed, team).items():
@@ -326,6 +326,7 @@ class MultiSeedManager:
         self.observers: dict[str, RoomObserver] = {}
         self.tasks: dict[str, asyncio.Task] = {}
         self.supervisor: asyncio.Task | None = None
+        self._synced_guilds: set[int] = set()
 
     def start(self) -> None:
         if self.supervisor is None or self.supervisor.done():
@@ -337,6 +338,15 @@ class MultiSeedManager:
             try:
                 configs = read_instances(self.data_dir)
                 wanted = {row["id"]: row for row in configs if row.get("enabled", True)}
+                # Other Discord guilds receive /archi commands through the same login.
+                for guild_id in {int(row["guild_id"]) for row in wanted.values()} - self._synced_guilds:
+                    try:
+                        guild = discord.Object(id=guild_id)
+                        self.client.tree.copy_global_to(guild=guild)
+                        await self.client.tree.sync(guild=guild)
+                        self._synced_guilds.add(guild_id)
+                    except (discord.Forbidden, discord.HTTPException) as exc:
+                        print(f"[Multiworld] Cannot sync guild commands: {type(exc).__name__}")
                 for ident in set(self.observers) - set(wanted):
                     await self.stop(ident)
                 for ident, config in wanted.items():
