@@ -46,7 +46,7 @@ BOT_STATUS = {"discord": "offline", "archipelago": "offline", "last_error": "", 
 FIELDS = (
     'AP_URL', 'AP_SLOT', 'AP_PASSWORD', 'AP_GAME', 'ITEM_CHANNEL_ID',
     'HINT_CHANNEL_ID', 'DEATHLINK_CHANNEL_ID', 'STATUS_CHANNEL_ID',
-    'ARCHIPELAGO_RELEASE_CHANNEL_ID',
+    'ARCHIPELAGO_RELEASE_CHANNEL_ID', 'ARCHICORD_BACKUP_INTERVAL_HOURS',
     'ARCHICORD_AP_INSTALL_DIR', 'ARCHICORD_APWORLD_DIRS'
 )
 DEFAULTS = {
@@ -59,6 +59,7 @@ DEFAULTS = {
     'DEATHLINK_CHANNEL_ID': '',
     'STATUS_CHANNEL_ID': '',
     'ARCHIPELAGO_RELEASE_CHANNEL_ID': '',
+    'ARCHICORD_BACKUP_INTERVAL_HOURS': '24',
     'ARCHICORD_AP_INSTALL_DIR': r'C:\ProgramData\Archipelago',
     'ARCHICORD_APWORLD_DIRS': '',
 }
@@ -142,6 +143,8 @@ def save_settings(values):
             raise ValueError(f'Ungültiger Wert für {key}.')
         if key == 'AP_URL':
             value = parse_address(value)
+        if key == 'ARCHICORD_BACKUP_INTERVAL_HOURS' and (not value.isdigit() or not 0 <= int(value) <= 168):
+            raise ValueError('Backup interval must be from 0 to 168 hours.')
         if key.endswith('_CHANNEL_ID') and value and not re.fullmatch(r'\d{15,22}', value):
             raise ValueError(f'{key} muss eine Discord-Kanal-ID sein.')
         if key == 'AP_SLOT' and not value:
@@ -437,7 +440,7 @@ HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name=
 <section class="card"><div class="banner"><span class="icon-badge blue">📝</span><div><strong>Bot-Konsole</strong><span class="meta">Die letzten 250 Logzeilen. Keine Token oder Passwörter hier eingeben.</span></div></div><pre id="log"></pre></section>
 <script>
 const token=__TOKEN__;let edited=false;
-const names={AP_URL:'Archipelago-Adresse / Port',AP_SLOT:'Slot-Name',AP_PASSWORD:'Archipelago-Passwort',AP_GAME:'Spiel',ITEM_CHANNEL_ID:'Item-Kanal',HINT_CHANNEL_ID:'Hint-Kanal',DEATHLINK_CHANNEL_ID:'DeathLink-Kanal',STATUS_CHANNEL_ID:'Status-Kanal',ARCHIPELAGO_RELEASE_CHANNEL_ID:'Release announcement channel',ARCHICORD_AP_INSTALL_DIR:'Archipelago-Installationsordner',ARCHICORD_APWORLD_DIRS:'Zusätzliche APWorld-Ordner (mit ; getrennt)'};
+const names={AP_URL:'Archipelago-Adresse / Port',AP_SLOT:'Slot-Name',AP_PASSWORD:'Archipelago-Passwort',AP_GAME:'Spiel',ITEM_CHANNEL_ID:'Item-Kanal',HINT_CHANNEL_ID:'Hint-Kanal',DEATHLINK_CHANNEL_ID:'DeathLink-Kanal',STATUS_CHANNEL_ID:'Status-Kanal',ARCHIPELAGO_RELEASE_CHANNEL_ID:'Release announcement channel',ARCHICORD_BACKUP_INTERVAL_HOURS:'Automatic backup interval in hours (0 = off)',ARCHICORD_AP_INSTALL_DIR:'Archipelago-Installationsordner',ARCHICORD_APWORLD_DIRS:'Zusätzliche APWorld-Ordner (mit ; getrennt)'};
 const fields=document.getElementById('fields');
 for(const [key,name] of Object.entries(names)){
   const label=document.createElement('label');label.htmlFor=key;label.textContent=name+' ('+key+')';
@@ -804,6 +807,34 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(400, {'ok': False, 'message': str(exc)})
 
 
+def auto_backup_loop():
+    """Create private local backups periodically, independently of bot login."""
+    # Delay the first pass to let the UI start and local configuration settle.
+    if BACKUP_STOP.wait(60):
+        return
+    while not BACKUP_STOP.is_set():
+        try:
+            raw = read_env_value('ARCHICORD_BACKUP_INTERVAL_HOURS') or '24'
+            hours = int(raw)
+            if not 0 <= hours <= 168:
+                raise ValueError("Invalid backup interval")
+            if hours:
+                existing = list_backups(ROOT)
+                newest = ((ROOT / 'backups' / existing[0]['name']).stat().st_mtime
+                          if existing else 0)
+                if __import__('time').time() - newest >= hours * 3600:
+                    with LOCK:
+                        result = create_backup(ROOT, keep=10)
+                    LOG.append('[Backups] Automatic local backup: ' + result['name'])
+        except (OSError, ValueError, TypeError) as exc:
+            LOG.append('[Backups] Automatic backup failed: ' + type(exc).__name__)
+        if BACKUP_STOP.wait(600):
+            return
+
+
+BACKUP_STOP = threading.Event()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Lokale ArchiCord WebUI')
     parser.add_argument('--port', type=int, default=8765, help='Lokaler WebUI-Port (Standard 8765)')
@@ -812,6 +843,7 @@ def main():
     if not 1 <= args.port <= 65535:
         parser.error('Port muss zwischen 1 und 65535 liegen.')
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
+    threading.Thread(target=auto_backup_loop, daemon=True, name='ArchiCordAutoBackup').start()
     print(f'ArchiCord WebUI: http://127.0.0.1:{args.port}', flush=True)
     print('Nur lokal erreichbar. Strg+C zum Beenden. Bot über die WebUI starten.', flush=True)
     try:
@@ -819,6 +851,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        BACKUP_STOP.set()
         server.server_close()
         shutdown()
 
