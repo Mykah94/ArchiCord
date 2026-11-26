@@ -1,102 +1,102 @@
-# ArchiCord – Nutzungsbedingungen (Terms of Service)
+# ArchiCord – Terms of Service 📜
 
-**Stand: 25. Oktober 2026**
+**Last updated:** October 25, 2026
 
-**Betreiber:** [NAME ODER PROJEKTVERANTWORTLICHE PERSON / ORGANISATION]  
-**Kontakt:** [KONTAKT-E-MAIL ODER KONTAKTMÖGLICHKEIT]  
-**Projekt:** [LINK ZUM ARCHICORD-GITHUB-REPOSITORY]  
-**Datenschutzhinweise:** [LINK ZUR DATENSCHUTZERKLÄRUNG]
+**Operator:** [OPERATOR NAME OR ORGANIZATION]  
+**Contact:** [CONTACT EMAIL OR OTHER CONTACT METHOD]  
+**Project:** [ArchiCord on GitHub](https://github.com/Mykah94/ArchiCord)  
+**Privacy policy:** [LINK TO PRIVACY POLICY]
 
-## 1. Geltungsbereich
+> **Before publishing or relying on these terms:** Replace the placeholders and have the text reviewed for the actual operator, jurisdiction and deployment. This is a template, not tailored legal advice.
 
-Diese Nutzungsbedingungen gelten für die Nutzung des Discord-Bots **ArchiCord** und seiner zugehörigen, lokal betriebenen Verwaltungsoberfläche („WebUI“), soweit diese vom oben genannten Betreiber bereitgestellt werden.
+## 1. Scope
 
-ArchiCord ist ein unabhängiges Community-Projekt zur Anzeige und Verwaltung von Informationen aus **Archipelago-Multiworlds**. Der Bot ist kein offizielles Produkt von Discord oder Archipelago und wird von diesen nicht unterstützt oder betrieben.
+These terms apply to the use of the **ArchiCord** Discord bot and its locally operated administration interface (“Web UI”) insofar as these services are provided by the operator above.
 
-Wer ArchiCord einem Discord-Server hinzufügt, den Bot konfiguriert oder seine Funktionen nutzt, erklärt sich mit diesen Nutzungsbedingungen einverstanden, soweit eine solche Zustimmung rechtlich erforderlich und wirksam ist. Es gelten außerdem die jeweils anwendbaren Bedingungen von Discord und gegebenenfalls weiterer angebundener Dienste.
+ArchiCord is an independent community project for presenting and managing information from **Archipelago Multiworld** sessions. It is not an official Discord or Archipelago product and is not endorsed or supported by those projects.
 
-## 2. Funktionen des Bots
+By installing, configuring or using ArchiCord, users agree to these terms where such agreement is legally required and effective. The applicable terms of Discord and other connected services also apply.
 
-Je nach Konfiguration und technischer Verfügbarkeit stellt ArchiCord insbesondere folgende Funktionen bereit:
+## 2. Bot features
 
-- Anzeige von **Archipelago-Spielern**, Spielstatus, Zielen und Multiworld-Fortschritt;
-- **Live-Boards** und Discord-Embeds mit Statusinformationen und Statistiken;
-- Meldungen zu **Items**, **Traps** und **Hints**;
-- **DeathLink-Zählung**, Ranglisten und humorvolle Meilensteinmeldungen, etwa nach jeweils 25 Toden;
-- Anzeige aktuell erreichbarer, noch nicht erledigter **Checks**, sofern kompatible Logikdaten über Universal Tracker verfügbar sind;
-- Discord-Slash-Befehle für bereitgestellte Status- und Spielfunktionen;
-- eine **lokale WebUI** für die Verwaltung des Bot-Prozesses, der Verbindungseinstellungen und ausgewählter APWorld-Dateien.
+Depending on configuration and availability, ArchiCord may provide:
 
-Nicht jede Funktion ist in jeder Version, für jedes Archipelago-Spiel oder auf jedem Discord-Server verfügbar. Insbesondere können Universal Tracker, YAML-Dateien und `.apworld`-Dateien voneinander abweichende Versionen oder unvollständige Spiellogik enthalten.
+- Archipelago player status, game assignments, goals and Multiworld progress.
+- Live boards and Discord embeds for status information and statistics.
+- Item, trap and hint announcements.
+- DeathLink counting, rankings and humorous milestone messages, for example every 25 deaths.
+- Currently reachable, incomplete checks when compatible Universal Tracker logic results are available.
+- Discord slash commands for the available game and status features.
+- A **local** Web UI for bot-process control, connection settings and selected APWorld files.
 
-## 3. Voraussetzungen und Berechtigungen
+Not all features work in every environment, game or APWorld version. Universal Tracker, YAMLs and APWorlds can be incompatible or have incomplete logic data.
 
-Zur Verwendung können ein Discord-Konto, entsprechende Berechtigungen auf einem Discord-Server sowie eine funktionierende Verbindung zu einem Archipelago-Server erforderlich sein.
+## 3. Requirements and permissions
 
-Serveradministratoren, die ArchiCord hinzufügen oder betreiben, sind dafür verantwortlich, den Bot nur in geeigneten Kanälen einzusetzen und die dafür benötigten Discord-Berechtigungen zu vergeben. Sie sind außerdem dafür verantwortlich, ihre Community angemessen über öffentlich sichtbare Statusmeldungen, DeathLink-Ranglisten und andere Anzeigen zu informieren.
+Use may require a Discord account, appropriate Discord server permissions and a working Archipelago server connection.
 
-## 4. Zulässige Nutzung
+Server administrators are responsible for adding ArchiCord only to appropriate channels, granting necessary permissions and informing their community about visible status messages, DeathLink leaderboards and similar displays.
 
-ArchiCord darf nur im Einklang mit geltendem Recht, diesen Nutzungsbedingungen und den Regeln der jeweils verwendeten Drittplattformen genutzt werden.
+## 4. Acceptable use
 
-Insbesondere ist es untersagt,
+ArchiCord must be used in accordance with applicable law, these terms and the rules of connected platforms. Users must not:
 
-- ArchiCord zur Belästigung, Bedrohung, Diskriminierung oder gezielten Bloßstellung anderer Personen einzusetzen;
-- den Bot durch missbräuchliche Befehle, automatisierte Überlastung oder Manipulation von Ereignisdaten zu stören;
-- Zugangsdaten, Bot-Tokens oder private Zugangsinformationen anderer Personen unberechtigt zu verwenden;
-- Sicherheitsmechanismen zu umgehen oder unberechtigten Zugriff auf die WebUI, Discord-Server oder Archipelago-Verbindungen zu erlangen;
-- fremde `.apworld`-Dateien oder andere Software ohne entsprechende Berechtigung weiterzugeben oder einzusetzen.
+- Use ArchiCord to harass, threaten, discriminate against or publicly shame others.
+- Disrupt the bot by abusing commands, flooding events or manipulating event data.
+- Use another person's tokens, credentials or private access information without authorization.
+- Bypass security protections or gain unauthorized access to Web UI, Discord servers or Archipelago connections.
+- Redistribute or use third-party APWorld files or other software without appropriate rights.
 
-Die humorvollen DeathLink-Nachrichten sind als spielbezogene Unterhaltung gedacht. Serveradministratoren sollen darauf achten, dass die Nutzung mit den Regeln und dem Umgangston ihrer Community vereinbar ist.
+Humorous DeathLink notifications are intended as game-related entertainment. Administrators should ensure their use is appropriate for their communities.
 
-## 5. Daten und gespeicherte Spielstände
+## 5. Data and saved sessions
 
-ArchiCord kann abhängig von der Konfiguration technische und spielbezogene Informationen verarbeiten, beispielsweise Discord-Kanal- und Serverkennungen, Spielernamen und Slots, Seed-Kennungen, Items, Hints, Ziele, erledigte beziehungsweise erreichbare Locations sowie DeathLink-Zähler.
+ArchiCord may process technical and game-related data, including Discord channel/server identifiers, player names and slot IDs, seed identifiers, items, hints, goals, completed or reachable locations and DeathLink counters.
 
-Bei selbst gehosteten Installationen werden Konfigurationsdateien und Bot-Zustände grundsätzlich in der vom jeweiligen Betreiber eingerichteten Umgebung verwaltet. Die konkrete Speicherung, Aufbewahrungsdauer, Datensicherung, Zugriffsberechtigung und Löschung hängen von der jeweiligen Installation und ihrem Betreiber ab.
+For self-hosted installations, settings and bot state are generally stored on the operator's own systems. Storage, retention, backups, access rights and deletion depend on the installation and its operator.
 
-Die Verarbeitung personenbezogener Daten sowie Betroffenenrechte und Ansprechpartner werden in den gesonderten **Datenschutzhinweisen** erläutert. Diese Nutzungsbedingungen ersetzen keine Datenschutzerklärung.
+Processing of personal data, related rights and contact points must be described in the operator's **separate privacy policy**. These terms do not replace that policy.
 
-**Wichtig:** Discord-Tokens, Archipelago-Passwörter, private YAML-Dateien, Seed-Dateien und andere vertrauliche Informationen dürfen nicht öffentlich in einem GitHub-Repository oder in Discord-Nachrichten veröffentlicht werden.
+**Do not publish** Discord tokens, Archipelago passwords, private YAMLs, seed archives or other confidential data in GitHub or Discord messages.
 
-## 6. Dienste und Inhalte Dritter
+## 6. Third-party services and content
 
-ArchiCord verwendet oder verarbeitet möglicherweise Daten aus Discord, Archipelago und optional Universal Tracker sowie aus spielbezogenen Erweiterungen (`.apworld`). Für Verfügbarkeit, Inhalte, Kompatibilität und Nutzungsbedingungen dieser externen Projekte sind deren jeweilige Anbieter verantwortlich.
+ArchiCord can interact with data from Discord, Archipelago, Universal Tracker and third-party `.apworld` extensions. The respective providers are responsible for their own services, compatibility, content and terms.
 
-Die Installation und Ausführung fremder `.apworld`-Dateien kann die Ausführung fremden Programmcodes einschließen. Installiere solche Dateien nur aus vertrauenswürdigen Quellen und nach eigener Prüfung.
+Loading external `.apworld` files may execute their Python code. Install them only from trusted sources and after suitable review.
 
-## 7. Verfügbarkeit und Richtigkeit
+## 7. Availability and accuracy
 
-ArchiCord wird im Rahmen der verfügbaren technischen und personellen Möglichkeiten bereitgestellt. Ein Anspruch auf ständige Erreichbarkeit, fehlerfreie Funktion, Support oder eine bestimmte Aktualisierungshäufigkeit besteht nicht, soweit gesetzlich zulässig.
+ArchiCord is provided according to available technical and organizational resources. To the extent permitted by law, continued availability, error-free operation, a particular support response or an update schedule cannot be guaranteed.
 
-Spielstatistiken, DeathLink-Zähler, Hinweise und „Doable Checks“ können insbesondere bei Netzwerkunterbrechungen, verzögerten Daten, unvollständigen Tracker-Ergebnissen oder inkompatiblen World-Versionen fehlerhaft oder veraltet sein. ArchiCord stellt keine Garantie für die Vollständigkeit oder Korrektheit der angezeigten Spiellogikdaten bereit.
+Player statistics, DeathLink counts, hints and doable checks may be incorrect or outdated due to network interruptions, delayed data, incomplete tracker output or incompatible world versions. ArchiCord does not guarantee the completeness or correctness of displayed game-logic data.
 
-## 8. Änderungen und Einstellung des Dienstes
+## 8. Changes and discontinuation
 
-Der Betreiber kann Funktionen ändern, ergänzen, vorübergehend aussetzen oder das Angebot einstellen, soweit dies rechtlich zulässig ist. Wesentliche Änderungen dieser Bedingungen werden an einer geeigneten Stelle veröffentlicht. Das Datum am Anfang dieser Seite kennzeichnet die jeweilige Fassung.
+The operator may modify, extend, suspend or discontinue features as allowed by applicable law. Material changes to these terms will be announced appropriately. The date at the top identifies the applicable version.
 
-## 9. Ausschluss von Nutzern und Servern
+## 9. Restrictions and removal
 
-Bei Missbrauch oder erheblichen Verstößen kann der Betreiber die Bereitstellung des Bots auf einzelnen Servern oder für bestimmte Nutzungen einschränken beziehungsweise beenden, soweit technisch möglich und rechtlich zulässig.
+In cases of abuse or serious violations, the operator may restrict or discontinue the bot on individual servers or for particular uses, where technically possible.
 
-Serveradministratoren können ArchiCord jederzeit über die Discord-Servereinstellungen entfernen. Bei selbst gehosteten Installationen können sie den lokalen Bot-Prozess beenden. Die Entfernung des Bots führt nicht zwingend zur automatischen Löschung zuvor gespeicherter lokaler Dateien; hierfür ist der zuständige Betreiber verantwortlich.
+Administrators may remove ArchiCord from their Discord server settings at any time. Self-hosted users can stop the local bot process. Removing the bot does not necessarily delete locally stored files; deletion remains the responsibility of the relevant operator.
 
-## 10. Haftung
+## 10. Liability
 
-Die Haftung richtet sich nach den anwendbaren gesetzlichen Bestimmungen. **Unberührt bleiben insbesondere die Haftung für Vorsatz und grobe Fahrlässigkeit, für Schäden aus der Verletzung von Leben, Körper oder Gesundheit sowie sonstige gesetzlich zwingende Haftungsfälle.**
+Liability is governed by applicable law. **Liability for intent, gross negligence, harm to life, body or health, and any other mandatory statutory liability remains unaffected.**
 
-Soweit gesetzlich zulässig, übernimmt der Betreiber keine Haftung für Schäden, die allein aus der Verwendung unzutreffender, verspäteter oder unvollständiger Spielstatistiken oder aus Störungen externer Dienste entstehen. Diese Regelung schränkt zwingende gesetzliche Ansprüche nicht ein.
+To the extent permitted by law, the operator accepts no liability for damage caused solely by incorrect, delayed or incomplete gameplay statistics or disruptions of external services. Nothing in these terms limits non-waivable legal rights.
 
-## 11. Kontakt
+## 11. Contact
 
-Bei Fragen zu diesen Nutzungsbedingungen, Problemen mit dem Bot oder Anliegen zur Verwendung auf einem Discord-Server wende dich an:
+For questions, support or usage concerns, please contact:
 
-**[KONTAKT-E-MAIL ODER KONTAKTMÖGLICHKEIT]**
+**[CONTACT EMAIL OR OTHER CONTACT METHOD]**
 
-## 12. Schlussbestimmungen
+## 12. Final provisions
 
-Es gilt das jeweils anwendbare Recht. Zwingende Verbraucherschutzvorschriften und andere unabdingbare gesetzliche Rechte bleiben unberührt. Sollte eine Bestimmung dieser Bedingungen unwirksam sein, bleiben die übrigen Bestimmungen im Rahmen des gesetzlich Zulässigen bestehen.
+Applicable law governs these terms, subject to mandatory consumer-protection provisions and other non-waivable rights. If a provision is invalid, the remaining provisions continue to apply to the extent legally permitted.
 
 ---
 
-*Hinweis für die Veröffentlichung: Vor der Nutzung bitte die vier Platzhalter oben und die Kontaktangabe in Abschnitt 11 ersetzen. Der Text ist eine Vorlage und ersetzt keine auf den tatsächlichen Betrieb abgestimmte rechtliche Prüfung.*
+*Publication note: Replace all operator, contact and privacy-policy placeholders before use. Seek appropriate legal review for the actual way ArchiCord is operated.*
