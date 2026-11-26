@@ -174,13 +174,22 @@ def save_settings(values):
     return read_settings()
 
 
-def safe_logs():
-    lines = list(LOG)
+def redact_text(value):
+    """Mask configured secrets even when included in status/error strings."""
+    from urllib.parse import quote
+    result = str(value)
     for name in ('DISCORD_TOKEN', 'AP_PASSWORD'):
         secret = read_env_value(name)
-        if secret:
-            lines = [line.replace(secret, '[' + name + '_VERBORGEN]') for line in lines]
-    return lines
+        if not secret:
+            continue
+        for representation in (secret, quote(secret, safe=''), quote(secret, safe='').lower()):
+            if representation:
+                result = result.replace(representation, '[' + name + '_VERBORGEN]')
+    return result
+
+
+def safe_logs():
+    return [redact_text(line) for line in list(LOG)]
 
 
 def update_status_from_log(line, proc):
@@ -547,6 +556,12 @@ def detected_seed_games():
 
 
 class Handler(BaseHTTPRequestHandler):
+    def valid_local_host(self):
+        """Reject DNS-rebinding hosts before returning pages, tokens or state."""
+        host = self.headers.get('Host', '').lower()
+        port = self.server.server_port
+        return host in ('127.0.0.1', 'localhost', f'127.0.0.1:{port}', f'localhost:{port}')
+
     def log_message(self, fmt, *args):
         return
 
@@ -555,6 +570,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Cache-Control', 'no-store')
+        self.send_header('Referrer-Policy', 'no-referrer')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Content-Length', str(len(raw)))
         self.end_headers()
@@ -576,6 +592,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_GET(self):
+        if not self.valid_local_host():
+            return self.reply(403, {'ok': False, 'message': 'Lokaler Host erforderlich.'})
         if self.path.startswith('/assets/'):
             return self.serve_asset(self.path[len('/assets/'):])
         if self.path == '/':
@@ -583,6 +601,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Cache-Control', 'no-store')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
@@ -592,6 +612,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Cache-Control', 'no-store')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
@@ -616,11 +638,13 @@ class Handler(BaseHTTPRequestHandler):
                     'token_configured': token_configured(), 'logs': safe_logs(),
                     'discord_status': BOT_STATUS['discord'] if is_running() else 'offline',
                     'archipelago_status': BOT_STATUS['archipelago'] if is_running() else 'offline',
-                    'last_error': BOT_STATUS['last_error'], 'exit_code': BOT_STATUS['exit_code']})
+                    'last_error': redact_text(BOT_STATUS['last_error']), 'exit_code': BOT_STATUS['exit_code']})
         else:
             self.reply(404, {'ok': False, 'message': 'Nicht gefunden.'})
 
     def do_POST(self):
+        if not self.valid_local_host():
+            return self.reply(403, {'ok': False, 'message': 'Lokaler Host erforderlich.'})
         origin = self.headers.get('Origin')
         host = self.headers.get('Host', '')
         if (origin and origin not in ('http://' + host,)) or not secrets.compare_digest(self.headers.get('X-ArchiCord-Token', ''), CSRF):

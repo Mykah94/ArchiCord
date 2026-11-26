@@ -1,0 +1,81 @@
+name: ArchiCord CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Check for committed local secrets and seed files
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import PurePosixPath
+          import subprocess
+
+          files = subprocess.check_output(['git', 'ls-files', '-z']).decode('utf-8').split('\0')
+          forbidden = []
+          for name in filter(None, files):
+              path = PurePosixPath(name)
+              pieces = path.parts
+              base = path.name.lower()
+              if base == '.env' or (base.startswith('.env.') and base != '.env.example'):
+                  forbidden.append(name)
+              elif base.endswith(('.pem', '.p12', '.pfx', '.key', '.apworld', '.archipelago')):
+                  forbidden.append(name)
+              elif base.startswith('ap_') and base.endswith('.zip'):
+                  forbidden.append(name)
+              elif pieces[0] in ('archicord_data', 'deathlinks'):
+                  forbidden.append(name)
+              elif len(pieces) >= 2 and pieces[0] == 'tracker' and pieces[1] in ('seeds', 'yamls', 'apworlds') and base != '.gitkeep':
+                  forbidden.append(name)
+          if forbidden:
+              raise SystemExit('Private files committed; remove before merging:\n' + '\n'.join(forbidden))
+          print('No known local secrets or seed files in the tracked repository.')
+          PY
+
+      - name: Check Python syntax
+        run: |
+          python - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git', 'ls-files', '-z', '*.py']).decode('utf-8').split('\0')
+          for path in filter(None, paths):
+              with open(path, 'rb') as f:
+                  compile(f.read(), path, 'exec')
+          print(f'Compiled {sum(bool(p) for p in paths)} tracked Python files.')
+          PY
+
+      - name: Run tests
+        run: python -m pytest -q

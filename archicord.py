@@ -17,7 +17,6 @@ import re
 import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
 from tracker.apworld_manager import selected_games, selection_fingerprint, load_selection
-from pathlib import Path
 from typing import Any, Literal
 
 import discord
@@ -89,7 +88,7 @@ DATA_DIR = Path(os.environ.get("ARCHICORD_DATA_DIR", "archicord_data"))
 POLL_INTERVAL = max(60, int(os.environ.get("AP_POLL_INTERVAL", "120")))
 RECONNECT_DELAY = 5
 STATUS_DEBOUNCE = 2
-DEBUG = os.environ.get("ARCHICORD_DEBUG", "true").lower() in ("true", "1", "yes")
+DEBUG = os.environ.get("ARCHICORD_DEBUG", "false").lower() in ("true", "1", "yes")
 
 # ANSI-Farben werden nur in Desktop-Discord zuverlässig angezeigt.
 USE_ANSI_ITEM_NAMES = os.environ.get("USE_ANSI_ITEM_NAMES", "true").lower() in (
@@ -1562,7 +1561,7 @@ class ArchipelagoDiscordBot(discord.Client):
             try:
                 print(f"[AP] Verbinde mit {AP_URL}")
                 async with websockets.connect(
-                    AP_URL, max_size=None, ping_interval=None, ping_timeout=None
+                    AP_URL, max_size=32 * 1024 * 1024, ping_interval=None, ping_timeout=None
                 ) as ws:
                     self.ap_ws = ws
                     async for message in ws:
