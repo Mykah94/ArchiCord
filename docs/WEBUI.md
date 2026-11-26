@@ -1,9 +1,16 @@
-# WebUI und APWorld-Auswahl
+# Local Web UI 🌐
 
-Start über `START_WEBUI.bat` oder `start_webui.sh`. Lokal aufrufen: `http://127.0.0.1:8765/` und für die World-Auswahl `http://127.0.0.1:8765/apworlds`.
+Start the control panel using `START_WEBUI.bat` or `sh start_webui.sh`.
 
-Die WebUI kann den Bot starten, stoppen, neu starten, Einstellungen speichern, Live-Logs anzeigen und installierte APWorld-Dateien auflisten. Die API akzeptiert schreibende Aktionen nur mit einem temporären CSRF-Token. Zusätzlich werden Host-Header auf `localhost` bzw. `127.0.0.1` für den lokalen Port beschränkt.
+- **Bot dashboard:** `http://127.0.0.1:8765/`
+- **APWorld selection:** `http://127.0.0.1:8765/apworlds`
 
-APWorlds werden über ihr `archipelago.json` in der `.apworld`-ZIP gelesen. Dabei wird **kein** World-Python-Code ausgeführt. Eine Auswahl kann für das aktuelle Seed-Spiel gesetzt, gespeichert und mit Bot-Neustart aktiviert werden. Gespeichert wird sie in `tracker/settings/apworld_selection.json`.
+The Web UI starts, stops and restarts the bot, edits local `.env` settings, displays live logs and lists installed APWorlds. Mutating API requests require a session CSRF token. Host headers are restricted to localhost/127.0.0.1 at the configured port.
 
-Die ursprüngliche HTML-/CSS-/JS-Seite bleibt bestehen. Externe Bildassets `webui_assets/archicord-logo.png` und `webui_assets/archicord-bg.png` fehlen jedoch in GitHub. Für originalgetreue Darstellung müssen die ursprünglichen Dateien aus einer Sicherung eingebracht werden. Nicht per Reverse Proxy oder Portweiterleitung öffentlich anbieten.
+APWorld discovery reads the `archipelago.json` manifest inside an `.apworld` ZIP. It does **not** execute the world's Python code. Selected games are saved to `tracker/settings/apworld_selection.json`. You can save without a restart, or save and restart the bot.
+
+## Artwork
+
+The original historical PNG artwork was missing from the accessible repository. The current repository includes **new SVG replacements** for the ArchiCord logo and background; the original HTML/CSS/JavaScript dashboard design remains otherwise unchanged.
+
+**Security:** Never publish this local administration interface through a reverse proxy, tunnel or port-forwarding rule.
