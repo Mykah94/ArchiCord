@@ -241,14 +241,13 @@ def redact_text(value):
     from urllib.parse import quote
     result = str(value)
     for name in ('DISCORD_TOKEN', 'AP_PASSWORD'):
-        secret = (get_saved_token() or read_env_value(name)
-                  if name == 'DISCORD_TOKEN' and secure_token_supported()
-                  else read_env_value(name))
-        if not secret:
-            continue
-        for representation in (secret, quote(secret, safe=''), quote(secret, safe='').lower()):
-            if representation:
-                result = result.replace(representation, '[' + name + '_VERBORGEN]')
+        secrets_to_redact = [read_env_value(name)]
+        if name == 'DISCORD_TOKEN' and secure_token_supported():
+            secrets_to_redact.append(get_saved_token())
+        for secret in filter(None, secrets_to_redact):
+            for representation in (secret, quote(secret, safe=''), quote(secret, safe='').lower()):
+                if representation:
+                    result = result.replace(representation, '[' + name + '_VERBORGEN]')
     return result
 
 
