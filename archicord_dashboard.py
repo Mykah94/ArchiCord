@@ -96,9 +96,19 @@ async function draw(){
  if(VIEW==='compatibility'){return await drawCompatibility()}
  if(VIEW==='history'){return await drawHistory()}
  const result=await api('dashboard');reset();
- const snap=result.snapshot;if(!snap){paragraph($('primary'),'No live snapshot yet. Start the bot or check the connection.');return}
+ const snap=result.snapshot;const rooms=result.instances||[];
+ if(VIEW==='dashboard'){
+   kpi('Multiworld rooms',rooms.length+(snap?1:0));
+   kpi('Connected rooms',rooms.filter(r=>r.status?.connected).length+(snap?.ap_connected?1:0));
+   const roomRows=[];
+   if(snap)roomRows.push({name:'Primary (legacy)',seed:snap.seed,team:snap.team,connection:snap.ap_connected?'🟢 Connected':'⚪ Offline',players:snap.players?.length||0,online:snap.players?.filter(p=>p.online).length||0,goals:snap.summary?.goals||0,deaths:snap.summary?.deaths||0});
+   for(const room of rooms){const state=room.status||{};roomRows.push({name:room.name,seed:state.seed||'—',team:state.team??'—',connection:state.connected?'🟢 Connected':'⚪ Offline',players:state.players||0,online:state.online||0,goals:state.goals||0,deaths:state.deaths||0})}
+   const multi=e('section',null,'dashboard-panel');multi.append(e('h2','🌍 All Multiworld instances'));table(multi,[['Instance','name'],['Seed','seed'],['Team','team'],['Connection','connection'],['Players','players'],['Online','online'],['Goals','goals'],['DeathLinks','deaths']],roomRows);const a=e('a','Manage Multiworld rooms');a.href='/instanzen';multi.append(a);$('primary').append(multi);
+   if(!snap){paragraph($('primary'),'No primary-seed snapshot yet. Additional Multiworld rooms are shown above.');return}
+ }
+ if(!snap){paragraph($('primary'),'No primary-seed snapshot yet. Open Multiworlds to inspect other seeds.');return}
  const meta=snap.summary||{};
- if(VIEW==='dashboard'){kpi('Players',snap.players.length);kpi('Online',snap.players.filter(p=>p.online).length);kpi('Goals',meta.goals);kpi('DeathLinks',meta.deaths);kpi('Checked locations',meta.checks?.checked);kpi('Progression items',meta.progression);paragraph($('primary'),'Seed: '+snap.seed+' · Team: '+snap.team);paragraph($('primary'),snap.ap_connected?'Archipelago connected':'Archipelago disconnected / data may be stale');table($('primary'),[['Player','name'],['Game','game'],['Status','status'],['Goal','goal'],['Doable','doable_label']],snap.players.map(p=>({...p,status:formatOnline(p.online),goal:p.goal?'🏆 Yes':'—'})));return}
+ if(VIEW==='dashboard'){kpi('Primary-seed players',snap.players.length);kpi('Online',snap.players.filter(p=>p.online).length);kpi('Goals',meta.goals);kpi('DeathLinks',meta.deaths);kpi('Checked locations',meta.checks?.checked);kpi('Progression items',meta.progression);paragraph($('primary'),'Seed: '+snap.seed+' · Team: '+snap.team);paragraph($('primary'),snap.ap_connected?'Archipelago connected':'Archipelago disconnected / data may be stale');table($('primary'),[['Player','name'],['Game','game'],['Status','status'],['Goal','goal'],['Doable','doable_label']],snap.players.map(p=>({...p,status:formatOnline(p.online),goal:p.goal?'🏆 Yes':'—'})));return}
  if(VIEW==='players'){table($('primary'),[['Player','name'],['Game','game'],['Status','status'],['Goal','goal'],['Doable checks','doable_label']],snap.players.map(p=>({...p,status:formatOnline(p.online),goal:p.goal?'Yes':'No'})));return}
  if(VIEW==='checks'){paragraph($('primary'),'Only confirmed tracker logic is marked doable. Unknown logic is never guessed. Other players show only their confirmed reachable checks.');const bar=e('div',null,'dashboard-toolbar'),inp=e('input'),sel=e('select'),player=e('select');inp.placeholder=T('Search locations');(snap.players||[]).forEach(p=>{const o=e('option',p.name+' · '+p.game);o.value=String(p.slot);player.append(o)});player.value=String(snap.own_slot||'');[['all','All'],['checked','Checked'],['doable','Doable'],['missing','Other missing']].forEach(([v,t])=>{const o=e('option',T(t));o.value=v;sel.append(o)});bar.append(player,inp,sel);$('primary').append(bar);const place=e('div');$('primary').append(place);const render=()=>{empty(place);const q=inp.value.toLowerCase();const all=(snap.player_checks&&snap.player_checks[player.value])||[];const rows=all.filter(x=>(sel.value==='all'||x.status===sel.value)&&String(x.name).toLowerCase().includes(q));table(place,[['Location','name'],['ID','id'],['State','status']],rows.slice(0,300));paragraph(place,rows.length+' results'+(rows.length>300?' (first 300 shown)':''))};inp.addEventListener('input',render);sel.addEventListener('change',render);player.addEventListener('change',render);render();return}
  if(VIEW==='item-routes'){table($('primary'),[['Time','at'],['From','player'],['To','recipient'],['Item','item'],['Location','location'],['Type','type']],(snap.item_routes||[]));return}
@@ -122,6 +132,7 @@ def render_dashboard(view: str, base_style: str, csrf: str) -> str:
         + html.escape(icon + " " + title) + "</a>"
         for key, (icon, title) in PAGES.items()
     )
+    nav += '<a href="/instanzen">🌍 Multiworlds</a>'
     return (PAGE.replace("__TITLE__", html.escape(PAGES[view][1]))
             .replace("__CSS__", base_style + STYLES)
             .replace("__NAV__", nav)
