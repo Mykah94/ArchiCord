@@ -152,8 +152,8 @@ def save_settings(values):
             raise ValueError('Backup interval must be from 0 to 168 hours.')
         if key.endswith('_CHANNEL_ID') and value and not re.fullmatch(r'\d{15,22}', value):
             raise ValueError(f'{key} muss eine Discord-Kanal-ID sein.')
-        if key == 'AP_SLOT' and not value:
-            raise ValueError(f'{key} darf nicht leer sein.')
+        if key == 'AP_SLOT' and not value and not read_instances(v3_data_directory()):
+            raise ValueError('AP_SLOT is required unless you configured a Multiworld room.')
         if key == 'AP_PASSWORD' and not value:
             # Ein leeres Passwortfeld im Browser darf ein bereits gespeichertes
             # Archipelago-Passwort niemals unbeabsichtigt entfernen.
