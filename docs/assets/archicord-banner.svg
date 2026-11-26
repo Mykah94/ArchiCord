@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="ArchiCord Discord and Archipelago Multiworld">
+<title>ArchiCord — Archipelago companion for Discord</title>
+<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#141c33"/><stop offset=".65" stop-color="#1f2342"/><stop offset="1" stop-color="#242044"/></linearGradient><linearGradient id="text" x2="1"><stop stop-color="#eef0ff"/><stop offset="1" stop-color="#bba7fa"/></linearGradient></defs>
+<rect width="1200" height="300" rx="16" fill="url(#g)"/>
+<g opacity=".24" stroke="#9b8dce" fill="none"><path d="M740 250Q920 110 1220 235"/><path d="M700 286Q950 135 1220 275"/><path d="M760 200Q930 90 1200 180"/></g>
+<g fill="#c7c3ff" opacity=".5"><circle cx="740" cy="63" r="2"/><circle cx="1020" cy="53" r="2"/><circle cx="1096" cy="119" r="2"/><circle cx="868" cy="244" r="2"/></g>
+<rect x="56" y="66" width="162" height="162" rx="38" fill="#10182c" stroke="#544a8c" stroke-width="2"/>
+<path d="M96 154v-14c0-29 18-48 41-48s41 19 41 48v14" fill="none" stroke="#9383e6" stroke-width="12" stroke-linecap="round"/>
+<rect x="104" y="129" width="66" height="54" rx="18" fill="#e0e4ff"/>
+<path d="M119 150l-7 6 7 6m36-12 7 6-7 6" fill="none" stroke="#5a63a9" stroke-linecap="round" stroke-width="5" stroke-linejoin="round"/>
+<path d="M129 171h16" stroke="#5a63a9" stroke-width="5" stroke-linecap="round"/>
+<text x="255" y="148" font-size="76" font-family="Arial,Helvetica,sans-serif" letter-spacing="-3" font-weight="700" fill="url(#text)">ArchiCord</text>
+<text x="260" y="190" font-family="Arial,Helvetica,sans-serif" font-size="23" fill="#b2bad8">Archipelago Multiworld companion for Discord</text>
+<text x="262" y="228" font-family="Arial,Helvetica,sans-serif" font-size="17" fill="#9c9fc7">Track progress  ·  Follow hints  ·  Count DeathLinks</text>
+<path d="M1020 105l32-32 36 32v82h-68z" fill="#6262ac"/><path d="M998 136l31-28 28 26v58h-59z" fill="#45497f"/><path d="M1063 136l27-24 29 26v54h-56z" fill="#45497f"/><path d="M970 190h180v15H970z" fill="#7473b6"/><path d="M1070 205v-37a17 17 0 0 0-34 0v37" fill="#151a30"/><path d="M1052 75V51" stroke="#c1b2f7" stroke-width="4"/><path d="M1054 51l25 9-25 9" fill="#b7a3e9"/>
+</svg>
