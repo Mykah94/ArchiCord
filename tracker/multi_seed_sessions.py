@@ -14,6 +14,7 @@ import uuid
 import discord
 import websockets
 
+from tracker.room_connection import resolve_room_url
 from tracker.multi_instances import (
     atomic_json, instance_directory, read_instances, safe_read, seed_path,
 )
@@ -51,6 +52,8 @@ class RoomObserver:
         self.connected = False
         self.error = ""
         self.ws = None
+        self.current_url = config['ap_url']
+        self.room_checked = 0.0
         self.players: dict[int, str] = {}
         self.games: dict[int, str] = {}
         self.items: dict[str, dict[int, str]] = {}
@@ -285,11 +288,37 @@ class RoomObserver:
                     self.players[int(player["slot"])] = text(player.get("alias") or player.get("name") or player["slot"])
             self.write_status()
 
+    async def check_room_port(self) -> None:
+        room_page = self.config.get('room_url')
+        if not room_page:
+            return
+        self.room_checked = time.monotonic()
+        try:
+            candidate = await asyncio.to_thread(resolve_room_url, room_page)
+        except (OSError, ValueError, TimeoutError) as exc:
+            self.error = f'Room URL temporarily unavailable: {type(exc).__name__}'
+            return
+        if candidate != self.current_url:
+            self.current_url = candidate
+            self.error = ''
+            self.write_status()
+            if self.ws is not None:
+                await self.ws.close()
+
+    async def room_port_watcher(self) -> None:
+        while not self.client.is_closed():
+            if self.config.get('room_url') and time.monotonic() - self.room_checked >= 60:
+                await self.check_room_port()
+            await asyncio.sleep(10)
+
     async def run(self) -> None:
         await self.client.wait_until_ready()
+        watcher = asyncio.create_task(self.room_port_watcher())
         while not self.client.is_closed():
             try:
-                async with websockets.connect(self.config["ap_url"], max_size=32 * 1024 * 1024,
+                if self.config.get('room_url') and time.monotonic() - self.room_checked >= 60:
+                    await self.check_room_port()
+                async with websockets.connect(self.current_url, max_size=32 * 1024 * 1024,
                                              ping_interval=20, ping_timeout=20) as ws:
                     self.ws = ws
                     async for raw in ws:
@@ -316,6 +345,8 @@ class RoomObserver:
                 self.online.clear()
                 self.write_status()
             await asyncio.sleep(5)
+        watcher.cancel()
+        await asyncio.gather(watcher, return_exceptions=True)
 
 
 class MultiSeedManager:
