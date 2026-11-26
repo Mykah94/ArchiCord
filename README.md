@@ -40,7 +40,7 @@ Progression-item and trap counters are **not** shown as part of the live doable-
 
 <div align="center">
 
-<img src="webui_assets/archicord-logo.svg" alt="ArchiCord mascot and headset logo" width="128"/>
+<img src="webui_assets/archicord-logo.svg" alt="ArchiCord rainbow portal mascot" width="128"/>
 
 </div>
 
