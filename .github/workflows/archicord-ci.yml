@@ -88,6 +88,9 @@ jobs:
           from archicord_dashboard import render_dashboard
           from tracker.instances_webui import render_instances
           from tracker.obs_log_webui import render_obs_log
+          from tracker.tracker_ui import render as tracker_page
+          from tracker.room_checks_webui import render as checks_page
+          import overlay_studio
 
           pages = {
               'control': webui.HTML,
@@ -97,6 +100,10 @@ jobs:
               'notifications': render_dashboard('notifications', webui.BASE_STYLE, 'test-csrf'),
               'multiworlds': render_instances(webui.BASE_STYLE, 'test-csrf'),
               'obs-log': render_obs_log('room1'),
+              'tracker': tracker_page(webui.BASE_STYLE,'test-csrf'),
+              'room-checks': checks_page(webui.BASE_STYLE,'room1'),
+              'overlay-studio': overlay_studio.STUDIO.replace('__CSS__',overlay_studio.CSS).replace('__TOKEN__','"test-token"'),
+              'overlay-source': overlay_studio.OBS.replace('__PROFILE__','"default"'),
           }
           with tempfile.TemporaryDirectory() as tmp:
               for name, page in pages.items():
