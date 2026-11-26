@@ -488,7 +488,7 @@ class ArchipelagoDiscordBot(discord.Client):
             embed = discord.Embed(
                 title="🌈 New Archipelago release: " + release["version"],
                 description=(
-                    "A new stable version of the official Archipelago software is available.\\n\\n"
+                    "A new stable version of the official Archipelago software is available.\n\n"
                     f"**Official download and release notes:** {release['url']}"
                 ),
                 color=0x9370F5,
