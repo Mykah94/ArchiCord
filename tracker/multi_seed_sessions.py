@@ -17,6 +17,7 @@ import websockets
 from tracker.room_connection import resolve_room_url
 from tracker.overlay_events import append_event
 from tracker.community_features import wish_match,run_entry,run_begin
+from tracker.room_tracker import run_room_tracker
 from tracker.multi_instances import (
     atomic_json, instance_directory, read_instances, safe_read, seed_path,
 )
@@ -66,6 +67,8 @@ class RoomObserver:
         self.state = fresh_state("", 0)
         self._board_lock = asyncio.Lock()
         self._run_lock = asyncio.Lock()
+        self.tracker_status = 'waiting'
+        self.tracker_doable = None
 
     def status(self) -> dict:
         return {
@@ -73,6 +76,7 @@ class RoomObserver:
             "team": self.team, "players": len(self.players),
             "online": len(self.online), "deaths": sum(self.state.get("death_counts", {}).values()),
             "goals": len(self.state.get("goals", [])), "error": self.error[:180],
+            "tracker_status": self.tracker_status, "tracker_doable": self.tracker_doable,
             "updated_at": int(time.time()),
         }
 
@@ -136,6 +140,9 @@ class RoomObserver:
         for key, value in fresh_state(seed, team).items():
             self.state.setdefault(key, value)
         self.seed, self.team = seed, team
+        self.tracker_status = 'waiting'
+        self.tracker_doable = None
+        (self.root / 'ut_checks.json').unlink(missing_ok=True)
         self.own_slot = int(packet['slot'])
         self.players = {int(p["slot"]): text(p.get("alias") or p.get("name") or p["slot"])
                         for p in packet.get("players", [])
@@ -402,6 +409,7 @@ class RoomObserver:
     async def run(self) -> None:
         await self.client.wait_until_ready()
         watcher = asyncio.create_task(self.room_port_watcher())
+        tracker_task = asyncio.create_task(run_room_tracker(self))
         try:
             while not self.client.is_closed():
                 try:
@@ -436,7 +444,8 @@ class RoomObserver:
                 await asyncio.sleep(5)
         finally:
             watcher.cancel()
-            await asyncio.gather(watcher, return_exceptions=True)
+            tracker_task.cancel()
+            await asyncio.gather(watcher, tracker_task, return_exceptions=True)
 
 
 class MultiSeedManager:
