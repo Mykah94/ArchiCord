@@ -15,6 +15,7 @@ import discord
 import websockets
 
 from tracker.room_connection import resolve_room_url
+from tracker.overlay_events import append_event
 from tracker.multi_instances import (
     atomic_json, instance_directory, read_instances, safe_read, seed_path,
 )
@@ -38,7 +39,7 @@ def progression_only(flags: object) -> bool:
 
 def fresh_state(seed: str, team: int) -> dict:
     return {"seed": seed, "team": team, "items_seen": [], "death_event_keys": [],
-            "death_counts": {}, "goals": [], "hints_seen": [], "started_at": int(time.time())}
+            "death_counts": {}, "goals": [], "hints_seen": [], "observed_items": [], "started_at": int(time.time())}
 
 
 class RoomObserver:
@@ -49,6 +50,7 @@ class RoomObserver:
         self.seed = ""
         self.pending_seed = ""
         self.team = 0
+        self.own_slot: int | None = None
         self.connected = False
         self.error = ""
         self.ws = None
@@ -132,6 +134,7 @@ class RoomObserver:
         for key, value in fresh_state(seed, team).items():
             self.state.setdefault(key, value)
         self.seed, self.team = seed, team
+        self.own_slot = int(packet['slot'])
         self.players = {int(p["slot"]): text(p.get("alias") or p.get("name") or p["slot"])
                         for p in packet.get("players", [])
                         if isinstance(p, dict) and "slot" in p and int(p.get("team", 0)) == team}
@@ -153,8 +156,6 @@ class RoomObserver:
         item = packet.get("item")
         if not self.connected or not isinstance(item, dict):
             return
-        if not progression_only(item.get("flags", 0)):
-            return
         try:
             receiver = int(packet["receiving"])
             finder = int(item["player"])
@@ -163,8 +164,6 @@ class RoomObserver:
         except (KeyError, TypeError, ValueError):
             return
         key = item_key(item, receiver)
-        if key in self.state.get("items_seen", []):
-            return
         game = self.game(receiver)
         name = self.items.get(game, {}).get(item_id)
         if not name:
@@ -172,6 +171,23 @@ class RoomObserver:
                 self.pending_items.append(packet)
             return
         location = self.locations.get(self.game(finder), {}).get(location_id, f"Location {location_id}")
+        try:
+            flags = int(item.get('flags', 0) or 0)
+        except (ValueError, TypeError):
+            flags = 0
+        if key not in self.state.get('observed_items', []):
+            category = 'trap' if flags & 4 else 'progression' if progression_only(flags) else 'item'
+            try:
+                append_event(self.root, category=category, seed=self.seed,
+                             player=self.player(finder), recipient=self.player(receiver),
+                             item=name, location=location)
+                self.state.setdefault('observed_items', []).append(key)
+                self.state['observed_items'] = self.state['observed_items'][-15000:]
+                self.save_state()
+            except OSError as exc:
+                print(f'[Multiworld:{self.id}] OBS event log: {type(exc).__name__}')
+        if not progression_only(flags) or key in self.state.get('items_seen', []):
+            return
         embed = self.embed("✨ Progression Item", f"**{text(name)}**", 0xa94cf7)
         embed.add_field(name="📍 Location", value=text(location, 280), inline=False)
         embed.add_field(name="🌍 From", value=text(self.player(finder)), inline=True)
