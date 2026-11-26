@@ -1,33 +1,35 @@
-# ArchiCord bei GitHub hochladen
+# Publishing ArchiCord on GitHub 🚀
 
-## Variante A: Ohne Git-Kommandozeile
+The main project repository is [Mykah94/ArchiCord](https://github.com/Mykah94/ArchiCord). This guide is for users who maintain their own fork or copy.
 
-1. Auf github.com über **New repository** ein neues Repository, z. B. `ArchiCord`, anlegen.
-2. ZIP **zuerst entpacken**. GitHub erwartet die Projektdateien, nicht ein einziges ZIP im Repository.
-3. Im neuen Repository **Add file → Upload files** öffnen und den Inhalt des Ordners `ArchiCord` hochladen. Auch die Ordner `.github` und `webui_assets` mitnehmen. Versteckte Dateien wie `.gitignore`, `.gitattributes` und `.env.example` gehören dazu.
-4. Dateien committen. **Keine `.env` oder privaten Tracker-Daten** hochladen.
-5. Unter **Actions** sollte der Test-Workflow sichtbar sein.
+## Option A: GitHub website
 
-## Variante B: Mit Git
+1. Create a repository at [github.com](https://github.com/).
+2. **Extract the project archive** first; upload the project files, not a single ZIP.
+3. In your new repository, open **Add file → Upload files**. Keep the `.github/`, `docs/`, `tracker/` and `webui_assets/` directories, plus dotfiles such as `.gitignore`, `.gitattributes`, and `.env.example`.
+4. Commit the public source files. **Do not upload `.env` or private tracker data.**
+5. Visit **Actions** and review your test workflow.
 
-Im entpackten Projektordner:
+## Option B: Git CLI
+
+From an extracted, unversioned project folder:
 
 ```bash
 git init
 git add .
 git status
-git commit -m "Initial ArchiCord release"
+git commit -m "Initial ArchiCord import"
 git branch -M main
-git remote add origin https://github.com/DEIN_NUTZERNAME/ArchiCord.git
+git remote add origin https://github.com/YOUR_USERNAME/ArchiCord.git
 git push -u origin main
 ```
 
-`DEIN_NUTZERNAME` durch deinen GitHub-Nutzernamen ersetzen; das neue GitHub-Repository vorher anlegen.
+Replace `YOUR_USERNAME` with your GitHub username and create the destination repository first. If you cloned a repository instead of extracting a ZIP, use your existing Git history and remote instead.
 
-**Vor dem Push prüfen:** Mit `git status --short` und `git ls-files` kontrollieren, dass **keine** `.env`, `AP_...zip`, private YAMLs, DeathLink-Dateien oder Secrets enthalten sind.
+**Before publishing:** inspect `git status --short` and `git ls-files` to ensure no tokens, `.env`, player YAMLs, seed archives, DeathLink state or other secrets are tracked.
 
-## Nach dem Upload
+## After publishing
 
-- Repo-Beschreibung und Topics wie `archipelago`, `discord-bot`, `python`, `universal-tracker` setzen.
-- Die gewünschte Lizenz unter **Add file → Create new file → LICENSE** explizit wählen. Ohne Lizenz ist die Wiederverwendung durch Dritte rechtlich eingeschränkt.
-- Optional ein erstes Release aus dem aktuellen Stand erstellen.
+- Add a concise English description and topics such as `archipelago`, `discord-bot`, `multiworld`, `universal-tracker`, and `python`.
+- Choose a license explicitly and only if you have the rights required to grant it; **no license has been granted automatically**.
+- Make a release only after tests and the desired live integration checks pass.
