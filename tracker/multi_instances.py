@@ -13,6 +13,7 @@ import re
 import time
 from typing import Any
 from urllib.parse import urlsplit
+from tracker.room_connection import validate_room_url
 
 INSTANCE_ID = re.compile(r"^[a-z][a-z0-9_-]{1,31}$")
 SNOWFLAKE = re.compile(r"^\d{15,22}$")
@@ -96,6 +97,7 @@ def validate_instances(raw: Any, previous: list[dict] | None = None) -> list[dic
     output = []
     ids = set()
     connections = set()
+    room_pages = set()
     for entry in raw:
         if not isinstance(entry, dict):
             raise ValueError("Instance must be a JSON object")
@@ -113,6 +115,11 @@ def validate_instances(raw: Any, previous: list[dict] | None = None) -> list[dic
         if url in connections:
             raise ValueError("Duplicate Archipelago room URL")
         connections.add(url)
+        room_page = validate_room_url(str(entry.get('room_url') or ''))
+        if room_page and room_page in room_pages:
+            raise ValueError('Duplicate official Archipelago room URL')
+        if room_page:
+            room_pages.add(room_page)
         guild = str(entry.get("guild_id") or "").strip()
         if not SNOWFLAKE.fullmatch(guild):
             raise ValueError("Each instance requires a Discord guild ID")
@@ -132,7 +139,7 @@ def validate_instances(raw: Any, previous: list[dict] | None = None) -> list[dic
             raise ValueError("Each instance needs at least one Discord channel")
         output.append({
             "id": ident, "name": name, "slot": slot, "game": game,
-            "ap_url": url, "guild_id": guild, "password": password,
+            "ap_url": url, "room_url": room_page, "guild_id": guild, "password": password,
             "enabled": entry.get("enabled", True) is not False, **channels,
         })
     return output
