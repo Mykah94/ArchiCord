@@ -122,3 +122,73 @@ def test_webui_has_multi_seed_manager_and_guarded_posts():
     assert "compare_digest" in webui.Handler.do_POST.__code__.co_names
     assert "valid_local_host" in webui.Handler.do_POST.__code__.co_names
     assert "/instanzen" in webui.HTML
+
+
+def test_official_room_url_only_and_port_extraction():
+    from tracker.room_connection import validate_room_url, current_room_port
+    url="https://archipelago.gg/room/0123456789abcdef0123456789abcdef"
+    assert validate_room_url(url)==url
+    assert current_room_port("Connect with /connect archipelago.gg:54321") == 54321
+    assert current_room_port("The address/ip is archipelago.gg and port is 52001") == 52001
+    assert current_room_port("No port here") is None
+    for bad in ["https://evil.example/room/0123456789abcdef0123456789abcdef",
+                "http://archipelago.gg/room/0123456789abcdef0123456789abcdef",
+                "https://archipelago.gg/room/0123456789abcdef0123456789abcdef?next=evil",
+                "https://archipelago.gg/room/no"]:
+        with pytest.raises(ValueError):
+            validate_room_url(bad)
+
+
+def test_overlay_event_log_redacts_and_bounds(tmp_path):
+    from tracker.overlay_events import append_event, recent_events
+    folder=tmp_path/"instances"/"room1"
+    append_event(folder,category="item",seed="A",player="Sender",
+                 recipient="Receiver",item="Useful",location="Here")
+    append_event(folder,category="progression",seed="B",player="Sender",
+                 recipient="Receiver",item="Progression",location="Forest")
+    recent=recent_events(folder,seed="B")
+    assert len(recent)==1
+    assert recent[0]["item"] == "Progression"
+    assert "password" not in json.dumps(recent)
+    with pytest.raises(ValueError):
+        append_event(folder,category="unknown",seed="A",player="X")
+
+
+def test_multiroom_slash_commands_use_guild_guard():
+    tree=ast.parse((Path(__file__).resolve().parents[1]/"archicord.py").read_text())
+    commands=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=="ArchiCommands")
+    method=next(n for n in commands.body if isinstance(n,ast.AsyncFunctionDef) and n.name=="multi_room_reply")
+    text=ast.unparse(method)
+    assert "primary_guild_allowed" in text
+    assert "for_guild" in text
+    for name in ("status","hints","deaths","fortschritt","statistik"):
+        func=next(n for n in commands.body if isinstance(n,ast.AsyncFunctionDef) and n.name==name)
+        assert "instanz" in ast.unparse(func)
+
+
+def test_obs_routes_return_html_and_redacted_json(tmp_path,monkeypatch):
+    from http.server import ThreadingHTTPServer
+    from threading import Thread
+    from urllib.request import urlopen
+    import webui
+    from tracker.overlay_events import append_event
+    monkeypatch.setattr(webui,"ROOT",tmp_path)
+    monkeypatch.setattr(webui,"ENV",tmp_path/".env")
+    (tmp_path/".env").write_text("DISCORD_TOKEN=private_token_never_expose",encoding="utf-8")
+    save_instances(tmp_path/"archicord_data",[room()])
+    folder=tmp_path/"archicord_data"/"instances"/"room1"
+    append_event(folder,category="progression",seed="One",player="Alice",item="Sword")
+    server=ThreadingHTTPServer(("127.0.0.1",0),webui.Handler)
+    thread=Thread(target=server.serve_forever,daemon=True)
+    thread.start()
+    try:
+        base=f"http://127.0.0.1:{server.server_port}"
+        with urlopen(base+"/obs-log?instance=room1",timeout=3) as response:
+            html=response.read().decode()
+            assert "ArchiCord Live Log" in html
+        with urlopen(base+"/api/obs-log?instance=room1",timeout=3) as response:
+            body=response.read().decode()
+            assert "Sword" in body
+            assert "private_token_never_expose" not in body
+    finally:
+        server.shutdown();server.server_close();thread.join(timeout=3)
