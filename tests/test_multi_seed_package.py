@@ -178,6 +178,9 @@ def test_obs_routes_return_html_and_redacted_json(tmp_path,monkeypatch):
     save_instances(tmp_path/"archicord_data",[room()])
     folder=tmp_path/"archicord_data"/"instances"/"room1"
     append_event(folder,category="progression",seed="One",player="Alice",item="Sword")
+    from tracker.multi_instances import atomic_json
+    import time
+    atomic_json(folder/"status.json",{"connected":True,"seed":"One","updated_at":time.time()})
     server=ThreadingHTTPServer(("127.0.0.1",0),webui.Handler)
     thread=Thread(target=server.serve_forever,daemon=True)
     thread.start()
