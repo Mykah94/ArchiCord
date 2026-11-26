@@ -293,17 +293,17 @@ atexit.register(shutdown)
 BASE_STYLE = r'''
 :root{
   color-scheme:dark;
-  --bg:#07101d;
-  --bg-soft:#0b1425;
-  --card:rgba(10,17,31,.78);
-  --card-border:rgba(120,146,255,.18);
+  --bg:#0b1022;
+  --bg-soft:#12172c;
+  --card:rgba(17,21,43,.88);
+  --card-border:rgba(150,128,244,.24);
   --text:#f7f8ff;
-  --muted:#b2bfd9;
-  --line:rgba(141,160,255,.14);
-  --accent:#7480ff;
-  --accent-2:#ef6fae;
-  --accent-3:#82e1a0;
-  --accent-4:#f3df7d;
+  --muted:#b9bfdf;
+  --line:rgba(163,145,255,.20);
+  --accent:#8b6df2;
+  --accent-2:#ff4b8e;
+  --accent-3:#50e282;
+  --accent-4:#ffdb54;
   --shadow:0 18px 60px rgba(0,0,0,.36);
   --radius:22px;
   --radius-sm:14px;
@@ -315,10 +315,10 @@ body{
   margin:0;
   color:var(--text);
   background:
-    linear-gradient(rgba(6,10,20,.86), rgba(6,10,20,.92)),
+    linear-gradient(rgba(8,11,28,.84), rgba(8,11,28,.94)),
     url('/assets/archicord-bg.svg') center/cover fixed no-repeat,
-    radial-gradient(circle at top right, rgba(239,111,174,.18), transparent 32%),
-    radial-gradient(circle at bottom left, rgba(103,126,255,.20), transparent 30%),
+    radial-gradient(circle at top right, rgba(255,75,142,.16), transparent 32%),
+    radial-gradient(circle at bottom left, rgba(34,211,239,.13), transparent 30%),
     var(--bg);
 }
 a{color:#cad1ff;text-decoration:none}
@@ -329,10 +329,10 @@ main{max-width:1180px;margin:0 auto;padding:32px 18px 48px}
 .brand img{width:88px;height:88px;object-fit:contain;filter:drop-shadow(0 10px 24px rgba(0,0,0,.35))}
 .hero-copy h1{font-size:clamp(2rem,4.2vw,3.5rem);line-height:1.03;margin:0 0 8px;font-weight:900;letter-spacing:-.04em}
 .hero-copy p{margin:0;color:var(--muted);max-width:760px;line-height:1.65}
-.title-gradient{background:linear-gradient(90deg,#ffffff 0 42%, #8b93ff 60%, #95b7ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.title-gradient{background:linear-gradient(90deg,#f6f3ff 0 33%, #c4a3ff 59%, #69dafa 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .navbar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 24px}
 .nav-pill{display:inline-flex;align-items:center;gap:10px;padding:12px 16px;border-radius:999px;background:rgba(9,15,27,.68);border:1px solid var(--line);backdrop-filter:blur(12px);box-shadow:var(--shadow);font-weight:700;color:#ecf1ff}
-.nav-pill.active{background:linear-gradient(135deg, rgba(116,128,255,.32), rgba(239,111,174,.18));border-color:rgba(184,190,255,.28)}
+.nav-pill.active{background:linear-gradient(135deg, rgba(144,93,251,.27), rgba(34,211,239,.12));border-color:rgba(187,144,255,.48)}
 .icon-badge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
 .icon-badge.pink{box-shadow:0 0 0 1px rgba(239,111,174,.18) inset;background:linear-gradient(180deg, rgba(239,111,174,.30), rgba(239,111,174,.08))}
 .icon-badge.green{box-shadow:0 0 0 1px rgba(130,225,160,.18) inset;background:linear-gradient(180deg, rgba(130,225,160,.26), rgba(130,225,160,.08))}
@@ -355,13 +355,13 @@ main{max-width:1180px;margin:0 auto;padding:32px 18px 48px}
 label{display:block;font-weight:750;margin:14px 0 8px;color:#f5f8ff}
 input,pre{font:inherit}
 input[type=text],input[type=password],input[type=search]{width:100%;background:rgba(6,12,22,.82);border:1px solid rgba(147,163,214,.20);color:#fff;border-radius:15px;padding:14px 15px;outline:none;transition:.15s border-color,.15s box-shadow}
-input[type=text]:focus,input[type=password]:focus,input[type=search]:focus{border-color:rgba(144,154,255,.56);box-shadow:0 0 0 4px rgba(116,128,255,.16)}
-input[type=checkbox]{width:20px;height:20px;vertical-align:middle;accent-color:#7480ff}
-button{border:0;border-radius:16px;padding:13px 18px;color:#fff;background:linear-gradient(135deg,#6d78ff,#8d66ff);font-weight:850;letter-spacing:.01em;cursor:pointer;margin:8px 10px 0 0;box-shadow:0 12px 24px rgba(73,80,209,.28);transition:.16s transform,.16s filter}
+input[type=text]:focus,input[type=password]:focus,input[type=search]:focus{border-color:rgba(174,118,255,.65);box-shadow:0 0 0 4px rgba(147,99,249,.15)}
+input[type=checkbox]{width:20px;height:20px;vertical-align:middle;accent-color:#8b6df2}
+button{border:0;border-radius:16px;padding:13px 18px;color:#fff;background:linear-gradient(135deg,#7454ef,#a04be4);font-weight:850;letter-spacing:.01em;cursor:pointer;margin:8px 10px 0 0;box-shadow:0 12px 24px rgba(73,80,209,.28);transition:.16s transform,.16s filter}
 button:hover{transform:translateY(-1px);filter:brightness(1.08)}
 button.secondary{background:linear-gradient(135deg, rgba(92,109,151,.95), rgba(52,73,107,.95));box-shadow:none}
 button.stop,button.danger{background:linear-gradient(135deg,#b8466b,#913551)}
-button.restart{background:linear-gradient(135deg,#2d87d5,#506bff)}
+button.restart{background:linear-gradient(135deg,#187bc1,#388be6)}
 .notice{min-height:24px;color:#a7ecff;line-height:1.5}
 .hint,.meta,small,p{color:var(--muted)}
 pre{height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(5,10,20,.82);padding:18px;border-radius:18px;border:1px solid rgba(255,255,255,.06);font-size:.86rem;line-height:1.58}
@@ -379,6 +379,28 @@ code{color:#cad1ff}
 .banner{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg, rgba(15,25,48,.9), rgba(10,17,31,.66));border:1px solid rgba(255,255,255,.08);margin-bottom:18px}
 .banner strong{display:block;font-size:1rem;margin-bottom:4px}
 hr.soft{border:0;height:1px;background:linear-gradient(90deg, rgba(255,255,255,.14), transparent);margin:18px 0}
+/* ArchiCord multiworld theme: visually consistent with the segmented portal icon.
+   Keep the existing Archipelago-inspired font stack and all controls unchanged. */
+:root{
+  --world-violet:#a94cf7;
+  --world-pink:#ff4b8e;
+  --world-gold:#ffdb54;
+  --world-green:#50e282;
+  --world-cyan:#22d3ef;
+  --world-blue:#318cf8;
+}
+.hero{padding:12px 0 20px;border-bottom:1px solid rgba(163,145,255,.16)}
+.brand img{border-radius:22px;filter:drop-shadow(0 10px 24px rgba(104,61,204,.18))}
+.hero-copy h1{font-family:Inter, Poppins, "Avenir Next", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif}
+.card{background-image:linear-gradient(135deg,rgba(150,92,239,.045),transparent 58%)}
+.card::before{height:2px;background:linear-gradient(90deg,var(--world-violet),var(--world-pink) 23%,var(--world-gold) 42%,var(--world-green) 61%,var(--world-cyan) 79%,var(--world-blue));opacity:.55}
+.banner{border-color:rgba(171,140,250,.19)}
+button:focus-visible,.nav-pill:focus-visible{outline:3px solid var(--world-cyan);outline-offset:3px}
+button:hover{filter:brightness(1.13)}
+.pill.on{border-color:rgba(80,226,130,.24)}
+.world:has(input:checked){border-color:rgba(169,76,247,.52);background:rgba(42,30,74,.43)}
+@media (prefers-reduced-motion:reduce){button{transition:none}button:hover{transform:none}}
+
 '''
 
 HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
