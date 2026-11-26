@@ -957,7 +957,8 @@ class Handler(BaseHTTPRequestHandler):
                              '/api/apworlds/save', '/api/apworlds/save_restart',
                              '/api/v3/notifications/save', '/api/v3/backup/create',
                              '/api/v3/backup/verify', '/api/v3/backup/restore',
-                             '/api/instances/save', '/api/tracker/settings/save'):
+                             '/api/instances/save', '/api/tracker/settings/save',
+                             '/api/token/save'):
             return self.reply(404, {'ok': False, 'message': 'Unbekannte Aktion.'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
@@ -966,6 +967,19 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length) or b'{}')
             if not isinstance(data, dict):
                 raise ValueError('Ungültige Anfrage.')
+            if self.path == '/api/token/save':
+                token = normalize_token(data.get('token', ''))
+                with LOCK:
+                    if secure_token_supported():
+                        store_token(token)
+                        ensure_env()
+                    else:
+                        save_settings({'DISCORD_TOKEN': token})
+                return self.reply(200, {
+                    'ok': True,
+                    'token_configured': token_configured(),
+                    'message': 'Discord-Bot-Token gespeichert. Er wird bei jedem Bot-Start automatisch verwendet.',
+                })
             if self.path == '/api/tracker/settings/save':
                 with LOCK:
                     settings=save_settings(ROOT,data.get('settings'))
