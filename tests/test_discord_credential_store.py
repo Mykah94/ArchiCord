@@ -162,3 +162,23 @@ def test_token_only_http_endpoint_is_csrf_protected_and_independent_of_ap_slot(w
         server.shutdown()
         server.server_close()
         thread.join(timeout=3)
+
+
+@pytest.mark.skipif(not credentials.supported(), reason="Windows Credential Manager only")
+def test_real_windows_credential_manager_roundtrip(monkeypatch):
+    """Use a unique disposable credential; never overwrite a real ArchiCord token."""
+    import ctypes
+    import uuid
+    target = "ArchiCord/CredentialStoreCI-" + uuid.uuid4().hex
+    monkeypatch.setattr(credentials, "TARGET", target)
+    try:
+        assert credentials.get_saved_token() is None
+        credentials.store_token("CI.fake.bot.secret")
+        assert credentials.get_saved_token() == "CI.fake.bot.secret"
+        credentials.store_token("CI.replaced.bot.secret")
+        assert credentials.get_saved_token() == "CI.replaced.bot.secret"
+    finally:
+        lib = ctypes.WinDLL("Advapi32.dll", use_last_error=True)
+        lib.CredDeleteW.argtypes = [ctypes.c_wchar_p, ctypes.c_uint32, ctypes.c_uint32]
+        lib.CredDeleteW.restype = ctypes.c_int
+        lib.CredDeleteW(target, credentials.CRED_TYPE_GENERIC, 0)
