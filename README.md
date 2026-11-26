@@ -86,6 +86,12 @@ Discord-Bot-Berechtigungen: **View Channels, Send Messages, Embed Links, Read Me
 - [Sicherheit und GitHub-Veröffentlichung](SECURITY.md)
 - [Mitwirken](CONTRIBUTING.md)
 
+## Wartung / Maintenance
+
+Neu (optional): Lokale automatische Backups und ein read-only Health Monitor in der WebUI unter **http://127.0.0.1:8765/wartung**. Die Sicherungen laufen, solange die WebUI geöffnet ist, und lassen sich manuell auslösen. Zugangsdaten und rohe Seed-Dateien werden nicht gesichert.
+
+[Wartungshandbuch](docs/MAINTENANCE.md)
+
 ## Tests
 
 ```bash
