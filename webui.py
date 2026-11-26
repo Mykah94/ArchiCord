@@ -558,16 +558,9 @@ def detected_seed_games():
 class Handler(BaseHTTPRequestHandler):
     def valid_local_host(self):
         """Reject DNS-rebinding hosts before returning pages, tokens or state."""
-        host = self.headers.get('Host', '')
-        if not host or any(c in host for c in '/\\@\r\n'):
-            return False
-        try:
-            parsed = urlsplit('http://' + host)
-            return (parsed.hostname in ('127.0.0.1', 'localhost')
-                    and (parsed.port is None or parsed.port == self.server.server_port)
-                    and not parsed.username and not parsed.password)
-        except ValueError:
-            return False
+        host = self.headers.get('Host', '').lower()
+        port = self.server.server_port
+        return host in ('127.0.0.1', 'localhost', f'127.0.0.1:{port}', f'localhost:{port}')
 
     def log_message(self, fmt, *args):
         return
