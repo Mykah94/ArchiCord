@@ -1,15 +1,22 @@
-# Fehlersuche
+# Troubleshooting 🔍
 
-**Bot startet nicht:** Python-Version und `requirements.txt` prüfen. Bei fehlenden Konfigurationen zuerst `.env` mit gültigem Discord-Token, AP-Slot, Spiel und Discord-Kanal-IDs prüfen.
+**The bot will not start.** Check your Python version, install `requirements.txt`, and confirm that `.env` contains a valid Discord token, AP slot/game, connection URL and Discord channel IDs.
 
-**Discord online, Archipelago offline:** `AP_URL`, Port, Slot-Name, `AP_GAME`, Passwort und Serververfügbarkeit prüfen. Bei Verbindungsfehlern vollständige lokale Logs ansehen, ohne Geheimnisse öffentlich zu kopieren.
+**Discord is online but Archipelago is offline.** Check `AP_URL`, port, slot name, `AP_GAME`, password and server availability. Review local error logs but do not post credentials publicly.
 
-**Keine Doable Checks:** `ARCHICORD_UT_LAUNCHER`, installierte Universal-Tracker-Komponente, YAML und World-Versionen prüfen. `[UT]`-Logs ansehen, APWorld-Auswahl kontrollieren. Nicht aus `missing`-Locations automatisch `doable` berechnen.
+**No doable checks appear.** Confirm `ARCHICORD_UT_LAUNCHER`, Universal Tracker installation, YAMLs, APWorld versions and the selected games. Inspect `[UT]` messages. **Do not convert missing locations into guessed doable checks.**
 
-**APWorld nicht gefunden:** In `tracker/apworlds/`, dem konfigurierten Archipelago-Installationsordner oder `ARCHICORD_APWORLD_DIRS` nach `.apworld` suchen. Ein lesbares, eindeutiges `archipelago.json` ist Voraussetzung.
+**An APWorld is missing.** Search `tracker/apworlds/`, your configured Archipelago installation or `ARCHICORD_APWORLD_DIRS`. The scanner expects a readable, unique `archipelago.json` manifest.
 
-**WebUI zeigt keine Bilder:** Die originalen `webui_assets` sind im derzeitigen GitHub-Stand nicht enthalten und müssen aus der lokalen Sicherung ergänzt werden.
+**The Web UI has no images.** The updated repository includes new SVG branding. Make sure `webui_assets/archicord-logo.svg` and `webui_assets/archicord-bg.svg` are present and refresh the page.
 
-**Nach einem Update fehlen alte Daten:** Nicht sofort neue Zustandsdateien überschreiben. Verwendete `.env`, `ARCHICORD_DATA_DIR`, AP-Server/Seed/Team/Slot und deine lokale Sicherung vergleichen.
+**Old seed data seems missing after an upgrade.** Do not overwrite newly found state. Compare `.env`, `ARCHICORD_DATA_DIR`, server URL, seed, team and slot with your local backup.
 
-**Tests ausführen:** `python -m pip install -r requirements-dev.txt`, danach `python -m pytest -q`. CI-Erfolg ersetzt keinen Discord-/Windows-/Archipelago-Live-Test.
+**Running tests.**
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+Passing CI checks does **not** replace live Discord, Windows or Archipelago integration tests.
