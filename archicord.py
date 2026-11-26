@@ -18,6 +18,7 @@ import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
 from archipelago_releases import check_release_once
 from archicord_core import add_activity, atomic_json, summarize_seed, notification_config, notification_decision, item_routes, checks_view
+from archicord_i18n import localize_embed
 from tracker.apworld_manager import selected_games, selection_fingerprint, load_selection
 from typing import Any, Literal
 
@@ -733,7 +734,13 @@ class ArchipelagoDiscordBot(discord.Client):
             return False
         try:
             if isinstance(text, discord.Embed):
-                await channel.send(embed=text, allowed_mentions=discord.AllowedMentions.none())
+                try:
+                    lang = notification_config(DATA_DIR / "notifications_v3.json").get(
+                        "discord_language", "de")
+                except (OSError, ValueError, TypeError):
+                    lang = "de"
+                await channel.send(embed=localize_embed(text, lang),
+                                   allowed_mentions=discord.AllowedMentions.none())
             else:
                 await channel.send(content=text, allowed_mentions=discord.AllowedMentions.none())
             return True
