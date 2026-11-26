@@ -205,3 +205,40 @@ def test_webui_v3_post_endpoints_keep_host_and_csrf_checks():
     assert any("ARCHIPELAGO" not in str(c) for c in source)
     assert "valid_local_host" in webui.Handler.do_POST.__code__.co_names
     assert "compare_digest" in webui.Handler.do_POST.__code__.co_names
+
+
+def test_live_snapshot_reads_tracker_once_and_never_invents_checks(tmp_path):
+    import ast
+    import os
+    from types import SimpleNamespace
+    from archicord_core import item_routes as routes
+    source = (Path(__file__).resolve().parents[1] / "archicord.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "ArchipelagoDiscordBot")
+    method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "publish_live_snapshot")
+    context = {"DATA_DIR": tmp_path, "os": os, "atomic_json": atomic_json,
+               "summarize_seed": summarize_seed, "item_routes": routes, "checks_view": checks_view}
+    exec(compile(ast.Module(body=[method], type_ignores=[]), "archicord.py", "exec"), context)
+    calls = []
+    bot = SimpleNamespace(
+        seed_name="seed-A", state=example_state(), own_slot=1, team=0, ap_connected=True,
+        status_slots=[1,2], location_names={"Game A": {101: "Forest chest", 102: "Secret cave"},
+                                            "Game B": {501: "Tower"}},
+        resolve_game=lambda slot: "Game A" if slot == 1 else "Game B",
+        resolve_player_name=lambda slot: "Alice" if slot == 1 else "Bob",
+        slot_online=lambda slot: slot == 1,
+        is_ready=lambda: True,
+    )
+    def get_tracker():
+        calls.append(1)
+        return {"1": {"doable": [101, 102], "checked": [101]},
+                "2": {"doable": [501], "checked": []}}
+    bot.external_checks = get_tracker
+    bot.state["own_checks"] = {"known": True, "checked": [101], "missing": [102]}
+    context["publish_live_snapshot"](bot)
+    payload = read_json(tmp_path / "live_v3.json")
+    assert len(calls) == 1
+    assert payload["players"][0]["doable_label"] == "1"
+    assert payload["player_checks"]["1"][0]["status"] == "checked"
+    assert payload["player_checks"]["2"][0]["status"] == "doable"
+    assert "DISCORD_TOKEN" not in (tmp_path / "live_v3.json").read_text()
