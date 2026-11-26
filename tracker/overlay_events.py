@@ -13,7 +13,7 @@ from typing import Any
 
 MAX_WINDOW = 512 * 1024
 MAX_LINE = 1024
-EVENT_TYPES = frozenset(("progression", "hint", "goal", "deathlink"))
+EVENT_TYPES = frozenset(("item", "progression", "trap", "hint", "goal", "deathlink"))
 
 
 def event_path(instance_directory: Path) -> Path:
