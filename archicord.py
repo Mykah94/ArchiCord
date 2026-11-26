@@ -17,6 +17,7 @@ import re
 import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
 from archipelago_releases import check_release_once
+from archicord_core import add_activity, atomic_json, summarize_seed, notification_config, notification_decision, item_routes, checks_view
 from tracker.apworld_manager import selected_games, selection_fingerprint, load_selection
 from typing import Any, Literal
 
@@ -453,6 +454,7 @@ class ArchipelagoDiscordBot(discord.Client):
         self.dirty_boards: set[str] = set()
         self.board_event: asyncio.Event | None = None
         self.ut_wakeup: asyncio.Event | None = None
+        self.notification_last_sent: dict[str, float] = {}
 
     async def setup_hook(self) -> None:
         self.board_event = asyncio.Event()
@@ -495,7 +497,7 @@ class ArchipelagoDiscordBot(discord.Client):
                 url=release["url"],
             )
             embed.set_footer(text="ArchiCord • Official Archipelago release notifications")
-            return await self.send_to_channel(channel_id, embed)
+            return await self.send_event_message("release", channel_id, embed)
 
         while not self.is_closed():
             try:
@@ -617,6 +619,7 @@ class ArchipelagoDiscordBot(discord.Client):
         return saved
 
     def request_board_update(self, *board_names: str) -> None:
+        self.publish_live_snapshot()
         self.dirty_boards.update(board_names or ("status", "hints", "deaths", "stats"))
         if self.board_event:
             self.board_event.set()
@@ -625,6 +628,72 @@ class ArchipelagoDiscordBot(discord.Client):
         """Wecke Universal Tracker, sobald AP-Logikdaten bereitstehen."""
         if self.ut_wakeup is not None:
             self.ut_wakeup.set()
+
+    def publish_live_snapshot(self) -> None:
+        """Expose sanitized per-seed progress to the local WebUI only."""
+        if not self.seed_name or not self.state or self.own_slot is None:
+            return
+        try:
+            own_game = self.resolve_game(self.own_slot)
+            locations = self.location_names.get(own_game, {})
+            own = self.state.get("own_checks", {})
+            doable = self.slot_doable(self.own_slot) if self.ap_connected else None
+            timestamp = __import__("time").time()
+            snapshot = {
+                "seed": str(self.seed_name)[:160], "team": self.team,
+                "updated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(timespec="seconds"),
+                "updated_at_epoch": timestamp,
+                "discord": "online" if self.is_ready() else "offline",
+                "ap_connected": self.ap_connected,
+                "tracker_status": ("confirmed" if doable is not None else
+                    "unavailable" if os.environ.get("ARCHICORD_UT_LAUNCHER") else "disabled"),
+                "summary": summarize_seed(self.state),
+                "own_checks": {
+                    "known": bool(own.get("known")), "checked": own.get("checked", []),
+                    "missing": own.get("missing", []),
+                },
+                "doable": doable,
+                "locations": {str(k): str(v)[:180] for k, v in locations.items()},
+                "players": [
+                    {"slot": slot, "name": self.resolve_player_name(slot)[:120],
+                     "game": (self.resolve_game(slot) or "")[:120],
+                     "online": bool(self.ap_connected and self.slot_online(slot)),
+                     "goal": bool(self.state.get("goals", {}).get(str(slot))),
+                     "doable_label": (
+                         "unknown" if not self.ap_connected else
+                         (str(len(result)) if result is not None else "no logic data"))}
+                    for slot in self.status_slots[:300]
+                    for result in [self.slot_doable(slot) if self.ap_connected else None]
+                ],
+                "item_routes": item_routes(self.state),
+            }
+            snapshot["checks"] = checks_view(snapshot)
+            # Check rows are derived only from confirmed UT data or checked AP IDs.
+            atomic_json(DATA_DIR / "live_v3.json", snapshot)
+        except Exception as exc:
+            print(f"[Dashboard] Snapshot skipped: {type(exc).__name__}")
+
+    async def send_event_message(self, kind: str, channel_id: int | None,
+                                 message: str | discord.Embed) -> bool:
+        """Optional channel/cooldown overrides; legacy defaults are unchanged."""
+        try:
+            config = notification_config(DATA_DIR / "notifications_v3.json")
+            allowed, override = notification_decision(
+                kind, config, self.notification_last_sent, __import__("time").monotonic()
+            )
+        except (OSError, ValueError, TypeError) as exc:
+            print(f"[Notifications] Invalid config, using existing channels: {type(exc).__name__}")
+            allowed, override = True, None
+        if not allowed:
+            # An explicitly muted event is still processed and persisted.
+            return True
+        target = override or channel_id
+        if not target:
+            return False
+        sent = await self.send_to_channel(target, message)
+        if sent:
+            self.notification_last_sent[kind] = __import__("time").monotonic()
+        return sent
 
     # --------------------------------------------------
     # DISCORD-NACHRICHTEN
@@ -651,13 +720,13 @@ class ArchipelagoDiscordBot(discord.Client):
             return False
 
     async def send_item_message(self, text):
-        return await self.send_to_channel(ITEM_CHANNEL_ID, text)
+        return await self.send_event_message("item", ITEM_CHANNEL_ID, text)
 
     async def send_hint_message(self, text):
-        return await self.send_to_channel(HINT_CHANNEL_ID, text)
+        return await self.send_event_message("hint", HINT_CHANNEL_ID, text)
 
     async def send_deathlink_message(self, text):
-        return await self.send_to_channel(DEATHLINK_CHANNEL_ID, text)
+        return await self.send_event_message("deathlink", DEATHLINK_CHANNEL_ID, text)
 
     async def upsert_board(self, key: str, channel_id: int | None, embed: discord.Embed) -> bool:
         if not self.state or not channel_id:
@@ -784,7 +853,8 @@ class ArchipelagoDiscordBot(discord.Client):
             finder=self.resolve_player_name(finder_slot),
             receiver=self.resolve_player_name(receiver_slot),
         )
-        if await self.send_item_message(embed):
+        if await self.send_event_message("trap" if is_trap else "item", ITEM_CHANNEL_ID, embed):
+            add_activity(self.state, "trap" if is_trap else "item", player=self.resolve_player_name(finder_slot), recipient=self.resolve_player_name(receiver_slot), item=name, location=location, key=key)
             self.state["items_seen"].append(key)
             self.seen_item_keys.add(key)
             self.register_item_stats(item, receiver_slot, is_trap)
@@ -857,6 +927,7 @@ class ArchipelagoDiscordBot(discord.Client):
                 if first else "✅ Jetzt gefunden",
         )
         if await self.send_hint_message(embed):
+            add_activity(self.state, "hint", player=finder, recipient=receiver, item=item_name, location=location, key=key + str(hint["found"]))
             self.merge_hint(hint)
             self.persist()
             self.request_board_update("hints", "stats")
@@ -962,7 +1033,8 @@ class ArchipelagoDiscordBot(discord.Client):
             color=COLOR_GOAL,
         )
         embed.set_footer(text=f"Seed: {plain_text(self.seed_name, 90)} • ArchiCord")
-        if await self.send_to_channel(GOAL_CHANNEL_ID, embed):
+        if await self.send_event_message("goal", GOAL_CHANNEL_ID, embed):
+            add_activity(self.state, "goal", player=name, key="goal:" + key)
             self.state["goal_announced"].append(key)
         self.persist()
         self.request_board_update("stats")
@@ -1064,6 +1136,7 @@ class ArchipelagoDiscordBot(discord.Client):
         if event_key is not None and event_key in self.state["death_event_keys"]:
             return
 
+        add_activity(self.state, "deathlink", player=source, key=event_key or "")
         previous_deaths = int(self.state["death_counts"].get(source, 0))
         self.state["death_counts"][source] = previous_deaths + 1
         if event_key is not None:
@@ -1468,6 +1541,7 @@ class ArchipelagoDiscordBot(discord.Client):
         await self.wait_until_ready()
         while not self.is_closed():
             await asyncio.sleep(POLL_INTERVAL)
+            self.publish_live_snapshot()
             # Externe Tracker-Dateien können sich ohne AP-Ereignis ändern.
             if self.state:
                 # Auch extern aktualisierte Seed-DeathLink-Dateien live übernehmen.
