@@ -121,6 +121,14 @@ ArchiCord can announce **new stable releases of the official Archipelago applica
 
 On first use, ArchiCord stores the current release as a baseline **without posting an old version**. Later stable releases are announced once per channel and remain recorded across bot restarts and seed changes. Failed sends will be retried. This does not check for individual APWorld updates or install software automatically. Internet access to GitHub and Discord message permissions are required.
 
+## 🔐 Discord token setup without manual .env editing
+
+On Windows, enter your **Discord bot token only once** in the local WebUI (Bot Control). ArchiCord securely saves it in **Windows Credential Manager** under your Windows account and automatically loads it every time the Discord bot starts. No plaintext `DISCORD_TOKEN` is needed in `.env`. Existing Windows `.env` tokens are migrated on WebUI startup; other settings and existing seed data stay untouched.
+
+The token is never displayed in the UI or exposed in its API, and it is not passed to the child process via environment variables when the secure store is active. **A Discord Developer Portal bot token must still be copied once.** Non-Windows systems keep their existing environment-variable/.env setup.
+
+See [Discord token setup and migration](docs/DISCORD_TOKEN_SETUP.md).
+
 ## 🎥 Overlay Studio, Slot Claims, Wishlists & Run Threads
 
 ArchiCord includes a separate **local Overlay Studio** for OBS Browser Sources,
