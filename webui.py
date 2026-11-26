@@ -20,6 +20,10 @@ import threading
 from urllib.parse import unquote, urlsplit
 
 from tracker.apworld_manager import scan_worlds, load_selection, save_selection
+from archicord_dashboard import PAGES as DASHBOARD_PAGES, render_dashboard
+from archicord_core import (read_json, history, compatibility, notification_config,
+    save_notification_config, create_backup, list_backups, verify_backup,
+    restore_backup, health)
 
 ROOT = Path(__file__).resolve().parent
 ENV = ROOT / '.env'
@@ -407,7 +411,7 @@ button:hover{filter:brightness(1.13)}
 
 HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Control Center</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
+<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">ArchiCord</span> Control Center</h1><p>Verwalte deinen Archipelago-Bot mit dem neuen ArchiCord-WebUI-Look: Serververbindung, Live-Status, Konfiguration und Bot-Konsole an einem Ort.</p></div></div></section>
 <div class="grid two">
   <section class="card">
@@ -467,7 +471,7 @@ refresh();setInterval(refresh,2500);
 
 APWORLD_HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord · APWorld-Verwaltung</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">APWorld-Verwaltung</span></h1><p>Durchsuche installierte <code>.apworld</code>-Dateien und lege fest, welche Spiele ArchiCord per Universal Tracker live abfragen soll.</p></div></div></section>
 <section class="card"><div class="toolbar"><button class="secondary" id="rescan">↻ APWorlds neu einlesen</button><button class="secondary" id="seedOnly">🎮 Aktuelle Seed-Spiele auswählen</button><button class="secondary" id="selectAll">Alle gültigen</button><button class="secondary" id="selectNone">Keine</button></div>
 <p id="summary" class="section-sub">Lese installierte APWorlds …</p><p id="seedInfo" class="section-sub"></p><p class="warn" id="warnings"></p><div class="toolbar"><input id="search" type="search" placeholder="Spielname oder APWorld-Datei suchen …"><span id="counter" class="number"></span></div></section>
@@ -560,7 +564,7 @@ readCatalog();
 
 RESOURCES_HTML = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Resources</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot Control</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld Manager</a><a class="nav-pill active" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot Control</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld Manager</a><a class="nav-pill active" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord icon"><div class="hero-copy"><h1><span class="title-gradient">Archipelago Resources</span></h1><p>Official websites, software releases, and help for your Multiworld adventures.</p></div></div></section>
 <div class="grid two">
 <section class="card"><div class="banner"><span class="icon-badge blue">🌍</span><div><strong>Official Archipelago Website</strong><span class="meta">Games, guides and Multiworld information.</span></div></div><p class="section-sub">Visit the official Archipelago website to learn about the software and supported games.</p><p><a href="https://archipelago.gg/" target="_blank" rel="noopener noreferrer">🌐 Open archipelago.gg ↗</a></p></section>
@@ -589,6 +593,18 @@ def detected_seed_games():
         except (SyntaxError, ValueError, TypeError):
             pass
     return []
+
+
+def v3_data_directory():
+    configured = read_env_value('ARCHICORD_DATA_DIR') or 'archicord_data'
+    path = Path(configured).expanduser()
+    return path if path.is_absolute() else ROOT / path
+
+
+def v3_snapshot():
+    path = v3_data_directory() / 'live_v3.json'
+    data = read_json(path)
+    return data if isinstance(data, dict) else None
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -665,6 +681,46 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+        elif self.path.strip('/') in DASHBOARD_PAGES:
+            page = self.path.strip('/')
+            raw = render_dashboard(page, BASE_STYLE, CSRF).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header('Content-Length', str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        elif self.path.startswith('/api/v3/'):
+            try:
+                endpoint = self.path[len('/api/v3/'):]
+                if endpoint == 'dashboard':
+                    snapshot = v3_snapshot() if is_running() else None
+                    self.reply(200, {'ok': True, 'snapshot': snapshot})
+                elif endpoint == 'history':
+                    self.reply(200, {'ok': True, 'history': history(v3_data_directory())})
+                elif endpoint == 'compatibility':
+                    self.reply(200, {'ok': True, 'worlds': compatibility(catalog_worlds())})
+                elif endpoint == 'notifications':
+                    self.reply(200, {'ok': True, 'config': notification_config(
+                        v3_data_directory() / 'notifications_v3.json')})
+                elif endpoint == 'backups':
+                    self.reply(200, {'ok': True, 'backups': list_backups(ROOT)})
+                elif endpoint == 'health':
+                    if not is_running():
+                        status = {'status': 'offline', 'reason': 'Bot process stopped', 'components': {
+                            'discord': 'offline', 'archipelago': 'offline', 'universal_tracker': 'offline'}}
+                    else:
+                        status = health(v3_snapshot())
+                        status['components']['discord'] = BOT_STATUS['discord']
+                        status['components']['archipelago'] = BOT_STATUS['archipelago']
+                    self.reply(200, {'ok': True, 'status': status})
+                else:
+                    self.reply(404, {'ok': False, 'message': 'Unknown API endpoint'})
+            except (OSError, ValueError, TypeError, OverflowError) as exc:
+                self.reply(400, {'ok': False, 'message': 'Cannot read local feature data: ' + type(exc).__name__})
         elif self.path == '/api/apworlds':
             try:
                 catalog = catalog_worlds()
@@ -697,7 +753,9 @@ class Handler(BaseHTTPRequestHandler):
         if (origin and origin not in ('http://' + host,)) or not secrets.compare_digest(self.headers.get('X-ArchiCord-Token', ''), CSRF):
             return self.reply(403, {'ok': False, 'message': 'Zugriff verweigert.'})
         if self.path not in ('/api/start', '/api/stop', '/api/restart', '/api/save', '/api/save_restart',
-                             '/api/apworlds/save', '/api/apworlds/save_restart'):
+                             '/api/apworlds/save', '/api/apworlds/save_restart',
+                             '/api/v3/notifications/save', '/api/v3/backup/create',
+                             '/api/v3/backup/verify', '/api/v3/backup/restore'):
             return self.reply(404, {'ok': False, 'message': 'Unbekannte Aktion.'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
@@ -706,6 +764,24 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length) or b'{}')
             if not isinstance(data, dict):
                 raise ValueError('Ungültige Anfrage.')
+            if self.path == '/api/v3/notifications/save':
+                settings = save_notification_config(
+                    v3_data_directory() / 'notifications_v3.json', data.get('config'))
+                return self.reply(200, {'ok': True, 'config': settings,
+                    'message': 'Notification settings saved. Restart the bot to apply changes.'})
+            if self.path == '/api/v3/backup/create':
+                with LOCK:
+                    result = create_backup(ROOT)
+                return self.reply(200, {'ok': True, 'backup': result})
+            if self.path == '/api/v3/backup/verify':
+                result = verify_backup(ROOT, data.get('name', ''))
+                return self.reply(200, {'ok': True, 'backup': result})
+            if self.path == '/api/v3/backup/restore':
+                if data.get('confirm') != 'RESTORE':
+                    raise ValueError('Explicit restore confirmation required.')
+                with LOCK:
+                    result = restore_backup(ROOT, data.get('name', ''), stopped=not is_running())
+                return self.reply(200, {'ok': True, 'result': result})
             if self.path.startswith('/api/apworlds/'):
                 save_selection(ROOT, data.get('worlds'), catalog_worlds())
                 msg = 'APWorld-Auswahl dauerhaft gespeichert. '
