@@ -121,6 +121,20 @@ ArchiCord can announce **new stable releases of the official Archipelago applica
 
 On first use, ArchiCord stores the current release as a baseline **without posting an old version**. Later stable releases are announced once per channel and remain recorded across bot restarts and seed changes. Failed sends will be retried. This does not check for individual APWorld updates or install software automatically. Internet access to GitHub and Discord message permissions are required.
 
+## 🌍 Parallel Archipelago seeds and OBS live logs
+
+ArchiCord can now connect to **up to 12 additional Multiworld rooms simultaneously** through the same Discord bot login. Each room has an independent AP WebSocket, Discord guild/channel mapping, seed/team storage, goals, DeathLink leaderboard and status. Configure rooms from the new **[Multiworlds](http://127.0.0.1:8765/instanzen)** page; changes are applied while the bot runs.
+
+**Only true progression items** (Archipelago flag bit 1, excluding the trap bit 4) produce **Discord item embeds**. Normal, useful and trap items do **not** create item embeds. The local OBS activity log may still record normal and trap items, without sending them as Discord messages. Progression hints, goal notices and the existing every-25th-DeathLink announcements remain separate.
+
+Every room has an optional official `https://archipelago.gg/room/...` link for verified port changes. A room can be disabled or removed from the configuration without deleting its stored seed data. The original primary AP room continues to work; if rooms are configured and `AP_SLOT` is left blank, ArchiCord can run **Discord-first without starting the unused legacy primary connection**.
+
+The new [Dashboard](http://127.0.0.1:8765/dashboard) shows the primary and additional rooms together. Item Routes, History and Health also include the independent rooms. Use the **OBS Live Log** link on each room card as a local OBS Browser Source for crisp text and the Archipelago rainbow theme.
+
+At present, **independent per-room Universal Tracker doable calculations and the supplied native Windows Overlay Studio are not migrated**. Doable Checks are never invented. This is a safe selective integration from the uploaded archive, not a wholesale replacement of the ArchiCord 3.0 codebase.
+
+See [Multiworld setup and archive migration notes](docs/MULTIWORLD_AND_OBS.md).
+
 ## 🌈 ArchiCord 3.0 — Multiworld Control Center
 
 The optional new dashboard adds **ten views** while keeping the original Bot Control, APWorld Manager and Resources pages:
