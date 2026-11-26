@@ -125,3 +125,40 @@ def test_bot_launch_uses_credential_store_not_child_env(windows_vault, monkeypat
     assert "DISCORD_TOKEN" not in received["env"]
     assert received["env"]["ARCHICORD_ENV_FILE"] == str(env.resolve())
     assert "credential.token" not in json.dumps(received, default=str)
+
+
+def test_token_only_http_endpoint_is_csrf_protected_and_independent_of_ap_slot(windows_vault):
+    from http.server import ThreadingHTTPServer
+    from threading import Thread
+    from urllib.request import Request, urlopen
+    from urllib.error import HTTPError
+
+    vault, env = windows_vault
+    env.write_text("AP_SLOT=\\nDISCORD_TOKEN=\\n", encoding="utf-8")
+    server = ThreadingHTTPServer(("127.0.0.1", 0), webui.Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        payload = json.dumps({"token": "token.saved.only.once"}).encode("utf-8")
+        with pytest.raises(HTTPError) as error:
+            urlopen(Request(base + "/api/token/save", data=payload,
+                            headers={"Content-Type": "application/json"},
+                            method="POST"), timeout=3)
+        assert error.value.code == 403
+        request = Request(base + "/api/token/save", data=payload, method="POST",
+                          headers={"Content-Type": "application/json",
+                                   "X-ArchiCord-Token": webui.CSRF})
+        with urlopen(request, timeout=3) as response:
+            result = json.loads(response.read())
+        assert result["ok"] and result["token_configured"]
+        assert vault["token"] == "token.saved.only.once"
+        assert "token.saved.only.once" not in env.read_text()
+        with urlopen(base + "/api/status", timeout=3) as response:
+            body = response.read().decode("utf-8")
+        assert "token.saved.only.once" not in body
+        assert '"token_storage": "windows_credential_manager"' in body
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
