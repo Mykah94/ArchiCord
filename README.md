@@ -86,6 +86,10 @@ Discord-Bot-Berechtigungen: **View Channels, Send Messages, Embed Links, Read Me
 - [Sicherheit und GitHub-Veröffentlichung](SECURITY.md)
 - [Mitwirken](CONTRIBUTING.md)
 
+## Updates über GitHub
+
+- [Sicherer Update-Workflow (Branch, Pull Request, Tests)](docs/GITHUB_UPDATES.md)
+
 ## Tests
 
 ```bash
