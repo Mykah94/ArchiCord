@@ -725,6 +725,27 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Security-Policy',"default-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'")
             self.send_header('Content-Length',str(len(raw)))
             self.end_headers();self.wfile.write(raw)
+        elif parsed_url.path == '/api/instances/checks':
+            ident=parse_qs(parsed_url.query).get('instance',[''])[0]
+            try:
+                rows=read_instances(v3_data_directory())
+                if ident not in {row['id'] for row in rows}:
+                    return self.reply(404,{'ok':False,'message':'Unknown Multiworld instance'})
+                root=instance_directory(v3_data_directory(),ident)
+                checked=read_json(root/'ut_checks.json')
+                status=read_json(root/'status.json')
+                if (not isinstance(checked,dict) or not isinstance(status,dict)
+                    or not status.get('connected') or checked.get('seed')!=status.get('seed')
+                    or checked.get('team')!=status.get('team')
+                    or __import__('time').time()-float(checked.get('updated_at',0))>360):
+                    return self.reply(200,{'ok':True,'known':False,'checks':[]})
+                names=checked.get('locations',{})
+                result=[{'id':i,'name':names.get(str(i),f'Location {i}'),'status':'doable'}
+                        for i in checked.get('doable',[])[:1500]]
+                return self.reply(200,{'ok':True,'known':True,'checks':result,
+                    'seed':checked['seed'],'team':checked['team']})
+            except (OSError,ValueError,TypeError):
+                return self.reply(400,{'ok':False,'message':'Cannot read tracker checks'})
         elif self.path == '/api/tracker/settings':
             try:
                 settings=load_settings(ROOT)
