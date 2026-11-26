@@ -683,8 +683,9 @@ class Handler(BaseHTTPRequestHandler):
                     return self.reply(404, {'ok': False, 'message': 'Unknown room'})
                 state = next((x['status'] for x in statuses(v3_data_directory()) if x['id'] == ident), {})
                 current_seed = state.get('seed') if state.get('connected') else None
-                events = recent_events(instance_directory(v3_data_directory(), ident),
-                                       limit=40, seed=current_seed)
+                events = (recent_events(instance_directory(v3_data_directory(), ident),
+                                        limit=40, seed=current_seed)
+                          if current_seed else [])
                 return self.reply(200, {'ok': True, 'name': room['name'],
                                         'seed': current_seed or '', 'events': events})
             except (ValueError, OSError, TypeError):
