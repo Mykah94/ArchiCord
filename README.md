@@ -1,132 +1,152 @@
+<div align="center">
+
+![ArchiCord banner](docs/assets/archicord-banner.svg)
+
 # ArchiCord 🎮
 
-**ArchiCord** ist ein Discord-Bot für [Archipelago](https://archipelago.gg/)-Multiworlds mit lokalem Web-Control-Center, Live-Boards, DeathLinks und optionaler **Universal-Tracker-Anbindung für Doable Checks**.
+**A Discord companion for Archipelago Multiworld sessions.**
 
-![ArchiCord WebUI Hintergrund](webui_assets/archicord-bg.png)
+[![Python 3.11 / 3.13](https://img.shields.io/badge/Python-3.11%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![CI](https://github.com/Mykah94/ArchiCord/actions/workflows/archicord-ci.yml/badge.svg)](https://github.com/Mykah94/ArchiCord/actions/workflows/archicord-ci.yml)
+![License: not yet specified](https://img.shields.io/badge/license-not%20yet%20specified-64748b)
 
-> **Projektstatus:** Hobby-/Community-Projekt. Die vorhandenen automatisierten Tests prüfen Code, Parser und WebUI-Schnittstellen; ein vollständiger Live-Test mit deiner Discord- und Archipelago-Installation ist weiterhin erforderlich. Universal Tracker unterstützt nicht garantiert jedes Spiel oder jede APWorld-Version.
+**[Getting started](#-getting-started) · [Features](#-features) · [Tracker setup](#-universal-tracker-optional) · [Documentation](#-documentation)**
 
-## Funktionen
+</div>
 
-| Funktion | Beschreibung |
+ArchiCord connects to an [Archipelago](https://archipelago.gg/) multiworld and publishes the information your players need in Discord: item and trap notifications, hint boards, goals, online status, DeathLink rankings and optional logic-backed progress tracking. A **local Web UI** handles bot controls and configuration.
+
+This is an independent community project, not an official Discord or Archipelago product.
+
+## ✨ Features
+
+| Feature | What it does |
 | --- | --- |
-| 🎯 **Live-Fortschritt** | Aktuell machbare, noch nicht erledigte Checks pro Spieler, sofern Universal Tracker gültige Logikdaten liefert |
-| 🧩 **Universal Tracker** | Automatischer CLI-Aufruf je ausgewähltem Slot; Zuordnung der Location-Namen zu Archipelago-IDs |
-| 🌍 **APWorld-Verwaltung** | Separate WebUI-Seite, um installierte APWorlds zu durchsuchen und Tracking-Spiele auszuwählen |
-| 👥 **Spielerstatus** | Online-/Offline-Board und Spielzuordnung |
-| 🔎 **Hints** | Hint-Meldungen sowie eine aktualisierte Übersicht offener/gefundener Hints |
-| 🎁 **Items / Traps** | Farbige Discord-Embeds für beobachtete Progression-Items und Traps |
-| ☠️ **DeathLinks** | Live-Rangliste, Speicherung pro Seed und humorvolle Meldungen bei jedem 25. Tod pro Spieler |
-| 🏆 **Ziele** | Zielankündigungen und Zielzähler |
-| 📣 **Feature-Embed** | Einmalige Übersicht der Bot-Funktionen pro Seed, plus `/archi funktionen` |
-| 🌐 **WebUI** | Bot starten, stoppen, neu starten, `.env` bearbeiten, Verbindung und Konsole ansehen |
-| 💾 **Seed-Speicherung** | JSON-Zustand je Server/Seed/Team/Slot für Boards, Hints und DeathLinks |
+| 🎯 **Doable checks** | Shows reachable, incomplete locations **only when a compatible Universal Tracker provides confirmed logic results** |
+| 🧩 **Universal Tracker** | Runs the optional local CLI per selected player and maps known location names to Archipelago IDs |
+| 🌍 **APWorld selection** | Scans local world manifests without executing their Python code and selects the games to track |
+| 👥 **Player status** | Online/offline player board with game assignments |
+| 🔎 **Hints** | Hint announcements and a persistent open/found hint board |
+| 🎁 **Items & traps** | Colored Discord embeds for observed progression items and traps |
+| ☠️ **DeathLinks** | Per-seed death leaderboard and a special message every **25 deaths per player** |
+| 🏆 **Goals** | Goal announcements and completion counters |
+| 📣 **Feature announcement** | Configurable once-per-seed feature embed, plus `/archi funktionen` |
+| 🌐 **Local Web UI** | Start, stop and restart the bot, edit `.env`, inspect connection status and logs |
+| 💾 **Seed persistence** | JSON state separated by server, seed, team and bot slot |
 
-**Nicht Teil der Live-Fortschrittsübersicht:** Progression-Item-Zähler und Trap-Zähler (diese Events werden bei Bedarf weiterhin separat verarbeitet).
+Progression-item and trap counters are **not** shown as part of the live doable-check overview; their events are handled separately.
 
-## English – Project Overview
+## 🖥️ Local control panel
 
-**ArchiCord** is a community Discord bot for [Archipelago](https://archipelago.gg/) multiworld sessions. It provides live player-status boards, item and trap notifications, hints, goal announcements, DeathLink leaderboards, seed-specific persistence and a local web control panel.
+<div align="center">
 
-When a compatible **Universal Tracker** installation is available, ArchiCord can also display currently reachable, unfinished locations (“doable checks”). These are taken from tracker-confirmed logic data, **not** inferred from missing locations. The APWorld manager lets you select which locally installed games should be tracked.
+<img src="webui_assets/archicord-logo.svg" alt="ArchiCord mascot and headset logo" width="128"/>
 
-### Features
+</div>
 
-| Feature | Description |
-| --- | --- |
-| Player status | Online/offline information and game assignments |
-| Hints, items and traps | Discord embeds and persistent hint boards |
-| DeathLinks | Per-seed leaderboard and special messages for every 25th death |
-| Goals and progress | Goal announcements, status statistics and optional doable checks |
-| Universal Tracker | Optional local CLI integration for supported worlds and YAMLs |
-| Local Web UI | Start, stop and restart the bot; manage settings, logs and APWorld selection |
-| Seed persistence | Stores state separately for Archipelago server, seed, team and bot slot |
-| Slash commands | `/archi status`, `hints`, `deaths`, `fortschritt`, `statistik`, `funktionen` |
+The Web UI runs at **http://127.0.0.1:8765/** and the APWorld selection page at **http://127.0.0.1:8765/apworlds**.
 
-### Quick start
+The branding above and the Web UI background are **new replacement illustrations**, not recovered copies of the previous missing artwork. The HTML/CSS/JavaScript layout and controls remain in place.
 
-1. Install **Python 3.11 or 3.13** and run `python -m pip install -r requirements.txt`.
-2. Copy `.env.example` to `.env`, then configure the Discord token, Archipelago connection, bot slot, game and Discord channel IDs.
-3. On Windows, run `START_WEBUI.bat`; on Linux/macOS, use `sh start_webui.sh`.
-4. Open **http://127.0.0.1:8765/** to start the bot and view its logs. Use **/apworlds** to manage tracker game selection.
+> 🔒 **Local only.** Do not forward the Web UI port to the internet or put it behind a public reverse proxy. Tokens and passwords are intentionally hidden from the status API. Leaving a password/token field blank keeps the saved value.
 
-**Security:** The Web UI is intended **only for localhost**. Never expose it to the internet. Do not commit `.env`, private seed files, player YAMLs or other credentials.
+## 🚀 Getting started
 
-**Current limitations:** The original Web UI background/logo assets are missing from this repository. The restored Tracker bridge and APWorld manager have automated regression coverage, but real Discord, Archipelago and Windows Universal Tracker integration still require live verification. Compatibility with every APWorld cannot be guaranteed. See [restoration and verification notes](docs/RESTORATION_REVIEW.md).
+**Requirements:** Python **3.11 or 3.13**, a Discord bot/application, and access to an Archipelago server. Python 3.15 is not currently part of the supported CI matrix.
 
----
+1. Clone or download the repository:
 
-## Schnellstart (Windows)
-
-1. **Python 3.11 oder 3.13** installieren. Python 3.15 wird von diesem Repository nicht durchgehend getestet.
-2. Repository als ZIP herunterladen oder klonen und in einen eigenen Ordner entpacken.
-3. Abhängigkeiten installieren:
-   ```powershell
-   py -3 -m pip install -r requirements.txt
+   ```bash
+   git clone https://github.com/Mykah94/ArchiCord.git
+   cd ArchiCord
    ```
-4. Die Beispieldatei kopieren und **lokal** bearbeiten:
+
+2. Install dependencies:
+
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+
+3. Copy `.env.example` to **`.env`** and configure `DISCORD_TOKEN`, `AP_URL`, `AP_SLOT`, `AP_GAME`, and your Discord channel IDs. Never publish `.env`.
+
+   Windows PowerShell:
+
    ```powershell
    Copy-Item .env.example .env
    ```
-   `DISCORD_TOKEN`, `AP_URL`, `AP_SLOT`, `AP_GAME` und die gewünschten Discord-Kanal-IDs eintragen.
-5. `START_WEBUI.bat` ausführen und **http://127.0.0.1:8765** öffnen.
-6. Über die WebUI den Bot starten. Discord- und Archipelago-Verbindung in der Konsole kontrollieren.
 
-**Bestehende Installation aktualisieren:** Den alten ArchiCord-Ordner vorher sichern. Programmdateien ersetzen, aber **deine bestehende `.env`, `archicord_data/`, `deathlinks/` und Tracker-Dateien behalten**. Diesem öffentlichen Repository liegt absichtlich keine `.env` bei.
+4. Launch the control panel: run **`START_WEBUI.bat`** on Windows, or **`sh start_webui.sh`** on Linux/macOS.
+5. Open **http://127.0.0.1:8765/**, start the bot, and verify both Discord and Archipelago connections in the live log.
 
-## Universal Tracker einrichten
+**Upgrading an existing installation?** Back up the entire folder first, especially `.env`, `archicord_data/`, `deathlinks/`, player YAMLs and tracker files. Do **not** overwrite or commit private state.
 
-Universal Tracker ist **optional**. Ohne Tracker bleibt der Discord-Bot lauffähig, zeigt aber bei Doable Checks „keine Logikdaten“.
+## 🧩 Universal Tracker (optional)
 
-1. Passende Archipelago-Installation und die **Universal Tracker**-Komponente lokal installieren.
-2. Für deinen Seed die passenden Spieler-YAMLs und `.apworld`-Dateien lokal bereitstellen. Du kannst sie in `tracker/yamls/`, `tracker/apworlds/` und die Seed-ZIP in `tracker/seeds/` ablegen. Die für die CLI tatsächlich benötigten Dateien müssen außerdem in den von der lokalen Archipelago-Installation verwendeten Ordnern liegen.
-3. In `.env` den installierten Launcher setzen, unter Windows beispielsweise:
+Without Universal Tracker, the bot remains usable, but reports **no logic data** rather than guessing what checks are possible.
+
+1. Install a compatible local Archipelago distribution, Universal Tracker, player YAMLs and the necessary `.apworld` versions.
+2. Set the launcher in `.env` (example Windows path):
+
    ```dotenv
    ARCHICORD_UT_LAUNCHER=C:\ProgramData\Archipelago\ArchipelagoLauncherDebug.exe
    ARCHICORD_UT_INTERVAL=120
    ARCHICORD_CHECKS_FILE=tracker/exports/live_checks.json
    ```
-4. Im Browser **http://127.0.0.1:8765/apworlds** die gewünschten APWorlds auswählen.
-5. Bot starten. In den Logs auf `[UT]` achten. Der erste Lauf wird nach dem Empfang des Archipelago-Datenpakets angestoßen; danach erfolgen regelmäßige Prüfungen.
 
-Die **APWorld-Auswahl steuert nur ArchiCords Tracker-Abfragen**, nicht das Laden aller APWorlds durch den Archipelago-Launcher. Loader-Warnungen für andere installierte APWorlds können auftreten. Bei inkompatiblen YAML-/APWorld-Versionen werden Ergebnisse nicht als verlässlich ausgegeben.
+3. Visit **http://127.0.0.1:8765/apworlds** and select the games to track.
+4. Start the bot and check messages prefixed **`[UT]`**. The first polling attempt follows receipt of the Archipelago data package; subsequent checks run on an interval.
 
-[Ausführliche Anleitung zur Tracker-Integration](docs/UNIVERSAL_TRACKER.md)
+The APWorld selection controls **ArchiCord's tracker queries**. It does not control which worlds the separate Archipelago launcher loads. Compatibility depends on the individual game's YAML, APWorld and tracker versions.
 
-## WebUI
+See [Universal Tracker setup](docs/UNIVERSAL_TRACKER.md) for limitations and diagnostics.
 
-![ArchiCord Logo](webui_assets/archicord-logo.png)
+## 💬 Slash commands
 
-- Bot-Steuerung: <http://127.0.0.1:8765/>
-- APWorld-Verwaltung: <http://127.0.0.1:8765/apworlds>
-- WebUI ist absichtlich nur über `127.0.0.1` erreichbar. **Nicht ins öffentliche Internet weiterleiten.**
-- `DISCORD_TOKEN` wird im Browser nicht angezeigt. Bereits gespeicherte Tokens bleiben bei leeren Tokenfeldern bestehen.
+| Command | Purpose |
+| --- | --- |
+| `/archi status` | Player online/offline status |
+| `/archi hints` | Open/found hints, with filtering and pages |
+| `/archi deaths` | DeathLink leaderboard |
+| `/archi fortschritt` | Player progress |
+| `/archi statistik` | Seed and player statistics |
+| `/archi funktionen` | Feature overview |
 
-## Discord Slash-Commands
+Discord permissions: **View Channels**, **Send Messages**, **Embed Links**, **Read Message History** and **Use Application Commands**. Invite with the **`bot`** and **`applications.commands`** scopes. No privileged Gateway intents are required.
 
-`/archi status`, `/archi hints`, `/archi deaths`, `/archi fortschritt`, `/archi statistik`, `/archi funktionen`.
-
-Discord-Bot-Berechtigungen: **View Channels, Send Messages, Embed Links, Read Message History, Use Application Commands**. Einladen mit den Scopes **`bot`** und **`applications.commands`**. Es werden keine privilegierten Gateway-Intents benötigt.
-
-## Dokumentation
-
-- [Installation](docs/INSTALLATION.md)
-- [Konfiguration](docs/KONFIGURATION.md)
-- [Universal Tracker und Doable Checks](docs/UNIVERSAL_TRACKER.md)
-- [WebUI und APWorld-Auswahl](docs/WEBUI.md)
-- [Fehlersuche](docs/FEHLERSUCHE.md)
-- [Sicherheit und GitHub-Veröffentlichung](SECURITY.md)
-- [Mitwirken](CONTRIBUTING.md)
-
-## Tests
+## 🧪 Testing and compatibility
 
 ```bash
 python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Zusätzlich führt GitHub Actions die Tests bei Pushes und Pull Requests unter Python 3.11 und 3.13 aus.
+GitHub Actions tests Python **3.11** and **3.13** on pushes and pull requests. Passing automated tests is **not** the same as successful real-world integration.
 
-## Lizenz
+| Area | Verification status |
+| --- | --- |
+| Python code and covered regression behavior | ✅ Tested in CI |
+| New SVG illustrations and asset paths | ✅ Included in repository |
+| Original historical Web UI artwork | ⚠️ Not recoverable from available repository history |
+| Universal Tracker with your real Windows/Archipelago/APWorld setup | ⚠️ Live validation still required |
+| All events, configurations and existing seed data | ⚠️ Full end-to-end validation still required |
 
-**Keine Lizenz automatisch vergeben.** Wenn du das Repository öffentlich machst und anderen die Nutzung/Weiterentwicklung erlauben möchtest, wähle ausdrücklich eine passende Lizenz in GitHub (beispielsweise MIT, sofern du dafür alle nötigen Rechte besitzt). Archipelago, Discord und fremde `.apworld`-Dateien unterliegen jeweils ihren eigenen Bedingungen und sind **nicht** Bestandteil dieses Repositories.
+**Never substitute missing-location counts for actual doable checks.** Tracker results must be supported by compatible world logic. See [restoration and compatibility review](docs/RESTORATION_REVIEW.md).
+
+## 📚 Documentation
+
+- [Installation](docs/INSTALLATION.md)
+- [Configuration](docs/KONFIGURATION.md)
+- [Universal Tracker and doable checks](docs/UNIVERSAL_TRACKER.md)
+- [Web UI and APWorld selection](docs/WEBUI.md)
+- [Troubleshooting](docs/FEHLERSUCHE.md)
+- [Restoration and compatibility review](docs/RESTORATION_REVIEW.md)
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Release notes](RELEASE_NOTES.md)
+- [Terms of service](TERMS_OF_SERVICE.md)
+
+## 💜 Credits and license
+
+Built for the Archipelago community. Thanks to the [Archipelago project](https://archipelago.gg/), Discord, and the maintainers of the individual worlds and tracking tools.
+
+**No license has been granted by this repository yet.** If you intend to permit reuse and redistribution, explicitly add a license only after confirming you hold the necessary rights. Discord, Archipelago and third-party APWorld projects have their own licenses and terms.
