@@ -1,18 +1,28 @@
-# ArchiCord installieren
+# Installation 🛠️
 
-## Voraussetzungen
+## Requirements
 
-- Python 3.11 oder 3.13
-- Discord-Bot mit den im README angegebenen Berechtigungen
-- Archipelago-Multiworld-Server und Slot für den Bot
-- Optional Universal Tracker und kompatible APWorlds/YAMLs
+- Python **3.11 or 3.13**.
+- A Discord bot/application with the permissions listed in the [README](../README.md).
+- An Archipelago Multiworld server and a slot for the bot.
+- Optional: Universal Tracker with compatible APWorlds and player YAMLs.
 
-```sh
+Install dependencies:
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-Unter Windows `.env.example` als `.env` kopieren und lokale Konfigurationsdaten eintragen. Die echte `.env` niemals veröffentlichen. Danach `START_WEBUI.bat` auf Windows oder `./start_webui.sh` auf Linux starten, die WebUI unter `http://127.0.0.1:8765/` aufrufen und den Bot starten.
+Copy `.env.example` to `.env` and enter your **local** credentials, server details and channel IDs. Never publish your real `.env`.
 
-Die WebUI lässt nur localhost/127.0.0.1 zu und ist nicht zur öffentlichen Bereitstellung gedacht. Bei Updates `.env`, `archicord_data/`, `deathlinks/` und den Tracker-Ordner vorher lokal sichern.
+On Windows, run `START_WEBUI.bat`; on Linux/macOS run `sh start_webui.sh`. Then open `http://127.0.0.1:8765/` and start the bot from the control panel.
 
-**Hinweis:** Die Bilddateien der ursprünglichen WebUI fehlen derzeit in diesem Repository. Die vorhandene HTML/CSS-Oberfläche bleibt unverändert, aber die Originalbilder müssen aus einer lokalen Sicherung wiederhergestellt werden.
+The Web UI is for localhost/127.0.0.1, **not for public hosting**.
+
+## Updating an existing installation
+
+Back up your entire ArchiCord folder before replacing files. In particular, preserve `.env`, `archicord_data/`, `deathlinks/` and local tracker/YAML data. Keep these private and do not overwrite them with example files.
+
+## Artwork note
+
+The previous Web UI artwork was not present in the available GitHub history. The repository now ships **new original SVG illustrations** instead of restoring those historical files.
