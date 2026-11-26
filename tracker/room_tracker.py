@@ -13,13 +13,14 @@ import time
 
 from tracker.multi_instances import atomic_json
 from tracker.ut_bridge import fetch_slot
+from tracker.tracker_settings import load_settings
 
 
 async def run_room_tracker(room, *, interval:int=180) -> None:
     interval=max(60,min(int(interval),3600))
     while not room.client.is_closed():
         try:
-            launcher=os.environ.get("ARCHICORD_UT_LAUNCHER","").strip()
+            launcher=load_settings(Path(__file__).resolve().parents[1])["launcher_path"].strip()
             game=room.game(room.own_slot) if room.own_slot is not None else ""
             names=room.locations.get(game,{})
             if launcher and room.connected and room.seed and room.own_slot is not None and names:
