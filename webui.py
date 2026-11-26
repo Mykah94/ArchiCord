@@ -766,8 +766,21 @@ class Handler(BaseHTTPRequestHandler):
                     snapshot = v3_snapshot() if is_running() else None
                     rooms = statuses(v3_data_directory())
                     # No private connection credentials are in room status files.
+                    room_events = {}
+                    for room in rooms[:12]:
+                        ident = room['id']
+                        current_seed = (room.get('status') or {}).get('seed')
+                        raw_events = recent_events(
+                            instance_directory(v3_data_directory(), ident), limit=80,
+                            seed=current_seed if current_seed else None)
+                        room_events[ident] = [
+                            {'type': event['category'], 'at': event['timestamp'],
+                             'player': event['player'], 'recipient': event['recipient'],
+                             'item': event['item'], 'location': event['location']}
+                            for event in raw_events]
                     self.reply(200, {'ok': True, 'snapshot': snapshot,
-                                     'instances': rooms, 'primary_running': is_running()})
+                                     'instances': rooms, 'instance_events': room_events,
+                                     'primary_running': is_running()})
                 elif endpoint == 'history':
                     self.reply(200, {'ok': True, 'history': history(v3_data_directory())})
                 elif endpoint == 'compatibility':
@@ -785,7 +798,8 @@ class Handler(BaseHTTPRequestHandler):
                         status = health(v3_snapshot())
                         status['components']['discord'] = BOT_STATUS['discord']
                         status['components']['archipelago'] = BOT_STATUS['archipelago']
-                    self.reply(200, {'ok': True, 'status': status})
+                    self.reply(200, {'ok': True, 'status': status,
+                                     'instances': statuses(v3_data_directory())})
                 else:
                     self.reply(404, {'ok': False, 'message': 'Unknown API endpoint'})
             except (OSError, ValueError, TypeError, OverflowError) as exc:
