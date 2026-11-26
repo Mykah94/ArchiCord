@@ -395,8 +395,8 @@ class ArchiCommands(app_commands.Group):
                                category: str, instanz: str | None) -> bool:
         """Route existing slash commands to the requested independent AP room."""
         rooms = self.bot.multi_seed.for_guild(interaction.guild_id)
-        if instanz is None and self.bot.state:
-            return False  # Existing primary-seed command behavior remains.
+        if instanz is None and self.bot.state and self.bot.primary_guild_allowed(interaction.guild_id):
+            return False  # Only the legacy guild can access legacy seed data.
         if instanz:
             rooms = [room for room in rooms if room.id.casefold() == instanz.casefold()]
         if not rooms:
@@ -423,20 +423,20 @@ class ArchiCommands(app_commands.Group):
                      f"**{safe_text(name, 100)}** · {safe_text(room.game(slot), 100)}"
                      for slot, name in sorted(room.players.items())[:25]]
             title = "👥 Spielerstatus"
-            body = "\\n".join(lines) or "Noch keine Spieler."
+            body = "\n".join(lines) or "Noch keine Spieler."
         elif category == "deaths":
             title = "☠️ DeathLink-Rangliste"
             ranked = sorted(deaths.items(), key=lambda pair: (-pair[1], pair[0]))
-            body = "\\n".join(f"**{n}.** {safe_text(name, 80)} — {count}"
+            body = "\n".join(f"**{n}.** {safe_text(name, 80)} — {count}"
                              for n, (name, count) in enumerate(ranked[:25], 1)) or "Noch keine Tode."
         elif category == "hints":
             title = "🔎 Progression-Hints"
             body = f"Gespeicherte Hint-Ereignisse: {len(state.get('hints_seen', []))}. Einzelne Hint-Details sind für weitere Räume noch nicht als Board verfügbar."
         else:
             title = "📊 Multiworld-Fortschritt"
-            body = (f"**Spieler:** {len(room.players)}\\n"
-                    f"**Ziele:** {len(goals)}\\n"
-                    f"**DeathLinks:** {sum(deaths.values())}\\n"
+            body = (f"**Spieler:** {len(room.players)}\n"
+                    f"**Ziele:** {len(goals)}\n"
+                    f"**DeathLinks:** {sum(deaths.values())}\n"
                     "Logikbasierte Doable Checks sind für zusätzliche Räume noch nicht verfügbar.")
         embed = discord.Embed(title=f"{title} · {safe_text(room.config['name'], 65)}",
                               description=body[:3800], color=COLOR_STATS)
@@ -589,6 +589,19 @@ class ArchipelagoDiscordBot(discord.Client):
         print(f"ArchiCord 2.0 eingeloggt als {self.user}")
         print(f"Item-Kanal: {ITEM_CHANNEL_ID} | Hint-Kanal: {HINT_CHANNEL_ID}")
         print(f"DeathLink-Kanal: {DEATHLINK_CHANNEL_ID} | Status: {STATUS_CHANNEL_ID}")
+
+    def primary_guild_allowed(self, guild_id: int | None) -> bool:
+        if not guild_id:
+            return False
+        if DISCORD_GUILD_ID:
+            return guild_id == DISCORD_GUILD_ID
+        for channel_id in (ITEM_CHANNEL_ID, HINT_CHANNEL_ID, DEATHLINK_CHANNEL_ID,
+                           STATUS_CHANNEL_ID):
+            if channel_id:
+                channel = self.get_channel(channel_id)
+                if channel and getattr(getattr(channel, "guild", None), "id", None) == guild_id:
+                    return True
+        return False
 
     def commands_allowed(self, interaction: discord.Interaction) -> bool:
         if not interaction.guild_id:
