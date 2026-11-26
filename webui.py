@@ -42,6 +42,7 @@ BOT_STATUS = {"discord": "offline", "archipelago": "offline", "last_error": "", 
 FIELDS = (
     'AP_URL', 'AP_SLOT', 'AP_PASSWORD', 'AP_GAME', 'ITEM_CHANNEL_ID',
     'HINT_CHANNEL_ID', 'DEATHLINK_CHANNEL_ID', 'STATUS_CHANNEL_ID',
+    'ARCHIPELAGO_RELEASE_CHANNEL_ID',
     'ARCHICORD_AP_INSTALL_DIR', 'ARCHICORD_APWORLD_DIRS'
 )
 DEFAULTS = {
@@ -53,6 +54,7 @@ DEFAULTS = {
     'HINT_CHANNEL_ID': '',
     'DEATHLINK_CHANNEL_ID': '',
     'STATUS_CHANNEL_ID': '',
+    'ARCHIPELAGO_RELEASE_CHANNEL_ID': '',
     'ARCHICORD_AP_INSTALL_DIR': r'C:\ProgramData\Archipelago',
     'ARCHICORD_APWORLD_DIRS': '',
 }
@@ -405,7 +407,7 @@ button:hover{filter:brightness(1.13)}
 
 HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Control Center</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a></nav>
+<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">ArchiCord</span> Control Center</h1><p>Verwalte deinen Archipelago-Bot mit dem neuen ArchiCord-WebUI-Look: Serververbindung, Live-Status, Konfiguration und Bot-Konsole an einem Ort.</p></div></div></section>
 <div class="grid two">
   <section class="card">
@@ -431,7 +433,7 @@ HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name=
 <section class="card"><div class="banner"><span class="icon-badge blue">📝</span><div><strong>Bot-Konsole</strong><span class="meta">Die letzten 250 Logzeilen. Keine Token oder Passwörter hier eingeben.</span></div></div><pre id="log"></pre></section>
 <script>
 const token=__TOKEN__;let edited=false;
-const names={AP_URL:'Archipelago-Adresse / Port',AP_SLOT:'Slot-Name',AP_PASSWORD:'Archipelago-Passwort',AP_GAME:'Spiel',ITEM_CHANNEL_ID:'Item-Kanal',HINT_CHANNEL_ID:'Hint-Kanal',DEATHLINK_CHANNEL_ID:'DeathLink-Kanal',STATUS_CHANNEL_ID:'Status-Kanal',ARCHICORD_AP_INSTALL_DIR:'Archipelago-Installationsordner',ARCHICORD_APWORLD_DIRS:'Zusätzliche APWorld-Ordner (mit ; getrennt)'};
+const names={AP_URL:'Archipelago-Adresse / Port',AP_SLOT:'Slot-Name',AP_PASSWORD:'Archipelago-Passwort',AP_GAME:'Spiel',ITEM_CHANNEL_ID:'Item-Kanal',HINT_CHANNEL_ID:'Hint-Kanal',DEATHLINK_CHANNEL_ID:'DeathLink-Kanal',STATUS_CHANNEL_ID:'Status-Kanal',ARCHIPELAGO_RELEASE_CHANNEL_ID:'Release announcement channel',ARCHICORD_AP_INSTALL_DIR:'Archipelago-Installationsordner',ARCHICORD_APWORLD_DIRS:'Zusätzliche APWorld-Ordner (mit ; getrennt)'};
 const fields=document.getElementById('fields');
 for(const [key,name] of Object.entries(names)){
   const label=document.createElement('label');label.htmlFor=key;label.textContent=name+' ('+key+')';
@@ -465,7 +467,7 @@ refresh();setInterval(refresh,2500);
 
 APWORLD_HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord · APWorld-Verwaltung</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">APWorld-Verwaltung</span></h1><p>Durchsuche installierte <code>.apworld</code>-Dateien und lege fest, welche Spiele ArchiCord per Universal Tracker live abfragen soll.</p></div></div></section>
 <section class="card"><div class="toolbar"><button class="secondary" id="rescan">↻ APWorlds neu einlesen</button><button class="secondary" id="seedOnly">🎮 Aktuelle Seed-Spiele auswählen</button><button class="secondary" id="selectAll">Alle gültigen</button><button class="secondary" id="selectNone">Keine</button></div>
 <p id="summary" class="section-sub">Lese installierte APWorlds …</p><p id="seedInfo" class="section-sub"></p><p class="warn" id="warnings"></p><div class="toolbar"><input id="search" type="search" placeholder="Spielname oder APWorld-Datei suchen …"><span id="counter" class="number"></span></div></section>
@@ -556,6 +558,18 @@ readCatalog();
 </script></main></body></html>'''
 
 
+RESOURCES_HTML = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ArchiCord Resources</title><style>'''+BASE_STYLE+'''</style></head><body><main>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot Control</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld Manager</a><a class="nav-pill active" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
+<section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord icon"><div class="hero-copy"><h1><span class="title-gradient">Archipelago Resources</span></h1><p>Official websites, software releases, and help for your Multiworld adventures.</p></div></div></section>
+<div class="grid two">
+<section class="card"><div class="banner"><span class="icon-badge blue">🌍</span><div><strong>Official Archipelago Website</strong><span class="meta">Games, guides and Multiworld information.</span></div></div><p class="section-sub">Visit the official Archipelago website to learn about the software and supported games.</p><p><a href="https://archipelago.gg/" target="_blank" rel="noopener noreferrer">🌐 Open archipelago.gg ↗</a></p></section>
+<section class="card"><div class="banner"><span class="icon-badge green">📦</span><div><strong>Official Software Releases</strong><span class="meta">Stable versions, release notes and downloads.</span></div></div><p class="section-sub">Check GitHub for official releases of the Archipelago application.</p><p><a href="https://github.com/ArchipelagoMW/Archipelago/releases/latest" target="_blank" rel="noopener noreferrer">⬇ View latest release ↗</a></p></section>
+<section class="card"><div class="banner"><span class="icon-badge pink">🔔</span><div><strong>Discord Release Announcements</strong><span class="meta">Get notified when a new stable Archipelago version ships.</span></div></div><p class="section-sub">Set <code>ARCHIPELAGO_RELEASE_CHANNEL_ID</code> in the Bot Control settings, then restart ArchiCord. The bot checks for a new stable release about every six hours while running. The first check creates a baseline without posting an old release. Each later version is announced once per channel; failed sends are retried.</p><p class="footer-note">This monitors the official Archipelago software, not individual APWorld updates. The bot must remain running to check for releases.</p></section>
+<section class="card"><div class="banner"><span class="icon-badge gold">🧭</span><div><strong>Community &amp; Documentation</strong><span class="meta">Official project documentation.</span></div></div><p><a href="https://archipelago.gg/tutorial/" target="_blank" rel="noopener noreferrer">📖 Archipelago tutorials ↗</a></p><p><a href="https://github.com/ArchipelagoMW/Archipelago" target="_blank" rel="noopener noreferrer">💻 Official source repository ↗</a></p></section>
+</div></main></body></html>'''
+
+
 def catalog_worlds():
     settings = read_settings()
     return scan_worlds(ROOT, install_dir=settings.get('ARCHICORD_AP_INSTALL_DIR'),
@@ -631,6 +645,17 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(raw)
         elif self.path == '/apworlds':
             raw = APWORLD_HTML.replace('__TOKEN__', json.dumps(CSRF)).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header('Content-Length', str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        elif self.path == '/resources':
+            raw = RESOURCES_HTML.encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Cache-Control', 'no-store')
