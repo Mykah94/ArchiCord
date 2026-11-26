@@ -382,7 +382,7 @@ def verify_backup(root: Path, name: str) -> dict:
             path_parts = Path(name_).parts
             if (name_.startswith("/") or ".." in path_parts or "\\" in name_ or
                 not any(name_ == part or name_.startswith(part + "/") for part in BACKUP_PARTS) or
-                info.is_dir() or (info.external_attr >> 16) & stat.S_IFMT == stat.S_IFLNK):
+                info.is_dir() or stat.S_ISLNK(info.external_attr >> 16)):
                 raise ValueError("Unsafe backup entry")
             total += info.file_size
             if total > MAX_ARCHIVE_BYTES or info.file_size > MAX_ARCHIVE_BYTES:
