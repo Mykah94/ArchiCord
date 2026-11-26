@@ -6,7 +6,7 @@ On **Windows**, ArchiCord now stores the Discord **bot** token in Windows Creden
 
 1. Open the official [Discord Developer Portal](https://discord.com/developers/applications) and copy the **bot token** for your ArchiCord application. Do not copy your personal Discord account token.
 2. Start the existing local ArchiCord WebUI and open **Bot Control** at `http://127.0.0.1:8765/`.
-3. Paste the token once into **Discord-Bot-Token (einmalig einrichten oder ersetzen)** and choose **Save**, or **Save & Restart** if the bot is already running.
+3. Paste the token once into **Discord-Bot-Token (einmalig einrichten oder ersetzen)** and choose **Discord-Token sicher speichern**. This dedicated action works even before you have configured the Archipelago slot or Discord channel IDs. If the bot is already running, restart it after replacing a token.
 4. ArchiCord securely saves it to **Windows Credential Manager** (current user's persistent credential), displays only a configured indicator, and automatically reads it for every subsequent bot start. Leave `DISCORD_TOKEN=` empty in `.env`.
 
 Changing other WebUI settings does **not** overwrite the stored bot token. An intentionally entered replacement is saved to the same user credential. Restart the bot after replacing a token to establish a new Discord session.
