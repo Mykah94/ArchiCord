@@ -53,3 +53,7 @@ AP_*.zip
 Thumbs.db
 *.log
 *.tmp
+
+# Local backups and maintenance preferences
+backups/
+config/maintenance.json
