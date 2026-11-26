@@ -1,15 +1,29 @@
-# Universal Tracker und Doable Checks
+# Universal Tracker and doable checks 🧩
 
-Universal Tracker ist optional. Ohne erfolgreiche Logikabfrage zeigt ArchiCord keine erfundenen Doable-Zahlen an.
+Universal Tracker is optional. ArchiCord shows **no logic data** when it cannot obtain reliable tracker results; it does **not** estimate doable checks from a list of unvisited locations.
 
-1. Lokale Archipelago-Installation und Universal Tracker mit passenden APWorld-Versionen und Spieler-YAMLs einrichten.
-2. `ARCHICORD_UT_LAUNCHER` auf die lokale ausführbare Launcher-Datei setzen.
-3. `ARCHICORD_UT_INTERVAL` und `ARCHICORD_CHECKS_FILE` nach Bedarf setzen.
-4. In `http://127.0.0.1:8765/apworlds` die APWorlds auswählen.
-5. Bot starten und `[UT]`-Logs prüfen.
+## Setup
 
-Der Launcher wird ohne Shell aufgerufen: `<Launcher> "Universal Tracker" -- --nogui --list <archipelago-URI>`. Die neue Bridge ordnet ausschließlich exakte und eindeutige Namen aus dem AP-Location-Datenpaket IDs zu. Bei Fehlern oder einem nicht erkannten Format erfolgt **kein** Erfolgs-Snapshot. Pro Slot werden erfolgreich ermittelte IDs als `doable` gespeichert; bereits erledigte Checks werden im Bot herausgefiltert.
+1. Install a compatible local Archipelago distribution, Universal Tracker, player YAMLs and APWorld versions.
+2. Set `ARCHICORD_UT_LAUNCHER` to the real local launcher executable.
+3. Optionally adjust `ARCHICORD_UT_INTERVAL` and `ARCHICORD_CHECKS_FILE`.
+4. Select games at `http://127.0.0.1:8765/apworlds`.
+5. Start the bot and inspect log lines prefixed `[UT]`.
 
-**Einschränkung:** Die Originalimplementierung der Bridge war nicht in GitHub vorhanden. Die rekonstruierte Variante wurde durch automatisierte Tests geprüft, aber noch **nicht** mit einer echten Windows-/Universal-Tracker-Installation. Der CLI-Verbindungsparameter enthält ein Passwort gegebenenfalls als Prozessargument; den Host deshalb nur vertrauenswürdigen lokalen Nutzern zugänglich machen. Wenn der Universal Tracker andere Ausgaben erzeugt, darf der Parser nicht einfach auf permissives Zählen umgestellt werden.
+The launcher is invoked **without a shell**, using the expected arguments:
 
-Die Auswahl in `tracker/settings/apworld_selection.json` steuert nur ArchiCords Abfragen, nicht das Laden der Worlds im externen Launcher. Keine Auswahl entspricht bisherigem Verhalten (alle Spiele), eine explizit leere Auswahl deaktiviert die Abfrage für alle Spiele.
+```text
+<Launcher> "Universal Tracker" -- --nogui --list <archipelago-URI>
+```
+
+The reconstructed bridge maps only **exact, unique** CLI location names to IDs from the Archipelago location data package. An unknown, incompatible or failed response does not become a successful snapshot. The bot excludes already-completed checks from confirmed `doable` locations.
+
+## Limits and security
+
+The original bridge was unavailable in Git history. The reconstructed implementation has automated tests, **not** confirmed end-to-end compatibility with a real Windows Universal Tracker setup.
+
+The connection URI may contain the Archipelago password as a process argument. Users with permission to inspect local processes might read it. Run ArchiCord on a trusted machine/account.
+
+If Universal Tracker outputs a different format, investigate it instead of making the parser permissive or fabricating results.
+
+The saved selection at `tracker/settings/apworld_selection.json` controls **ArchiCord's queries only**, not which worlds a separate launcher loads. No saved selection retains the default “all games” behavior; an explicitly empty selection disables queries for all games.
