@@ -1,0 +1,35 @@
+name: Maintenance checks
+
+on:
+  push:
+    branches:
+      - feature/auto-backups-health-monitor-2026-11-26
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  maintenance-tests:
+    runs-on: ubuntu-latest
+    name: Python ${{ matrix.python }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install test tools
+        run: python -m pip install 'pytest>=8,<10'
+      - name: Check code compilation
+        run: |
+          python -m py_compile archicord_maintenance.py archicord_maintenance_web.py webui.py
+      - name: Run offline maintenance regression tests
+        run: python -m pytest -q tests/test_maintenance.py
