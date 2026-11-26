@@ -53,11 +53,11 @@ def test_instance_validation_prevents_room_duplicates_and_invalid_channels():
     with pytest.raises(ValueError):
         validate_instances([room("../escape")])
     with pytest.raises(ValueError):
-        validate_instances([room(ap_url="http://bad.example")])
+        validate_instances([{**room(), "ap_url":"http://bad.example"}])
     with pytest.raises(ValueError):
-        validate_instances([room(item_channel_id="broken")])
+        validate_instances([{**room(), "item_channel_id":"broken"}])
     with pytest.raises(ValueError):
-        validate_instances([room(password="bad\nvalue")])
+        validate_instances([{**room(), "password":"bad\nvalue"}])
     with pytest.raises(ValueError):
         validate_instances([room()]*13)
 
