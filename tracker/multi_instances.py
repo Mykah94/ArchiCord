@@ -137,10 +137,17 @@ def validate_instances(raw: Any, previous: list[dict] | None = None) -> list[dic
             channels[key] = value
         if not any(channels.values()):
             raise ValueError("Each instance needs at least one Discord channel")
+        thread_parent = str(entry.get('thread_parent_channel_id') or old.get('thread_parent_channel_id') or '').strip()
+        if thread_parent and not SNOWFLAKE.fullmatch(thread_parent):
+            raise ValueError('Invalid thread parent channel ID')
         output.append({
             "id": ident, "name": name, "slot": slot, "game": game,
             "ap_url": url, "room_url": room_page, "guild_id": guild, "password": password,
-            "enabled": entry.get("enabled", True) is not False, **channels,
+            "enabled": entry.get("enabled", True) is not False,
+            # Preserve optional fields from the uploaded package for later upgrades.
+            "thread_enabled": entry.get('thread_enabled', old.get('thread_enabled', False)) is True,
+            "thread_parent_channel_id": thread_parent,
+            **channels,
         })
     return output
 
