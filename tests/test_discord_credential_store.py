@@ -124,4 +124,4 @@ def test_bot_launch_uses_credential_store_not_child_env(windows_vault, monkeypat
     assert "gestartet" in webui.start_bot()
     assert "DISCORD_TOKEN" not in received["env"]
     assert received["env"]["ARCHICORD_ENV_FILE"] == str(env.resolve())
-    assert "credential.token" not in json.dumps(received)
+    assert "credential.token" not in json.dumps(received, default=str)
