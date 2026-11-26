@@ -16,6 +16,8 @@ import os
 import re
 import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
+from tracker.multi_seed_sessions import MultiSeedManager
+from tracker.multi_instances import read_instances
 from archipelago_releases import check_release_once
 from archicord_core import add_activity, atomic_json, summarize_seed, notification_config, notification_decision, item_routes, checks_view
 from archicord_i18n import localize_embed
@@ -61,13 +63,19 @@ if DISCORD_TOKEN.lower().startswith("bot "):
 AP_URL = os.environ.get("AP_URL", "wss://archipelago.gg:61664").strip() or "wss://archipelago.gg:61664"
 if not re.match(r"^wss?://\S+$", AP_URL):
     raise SystemExit(f"[Konfiguration] Ungültige AP_URL: {AP_URL!r}")
-AP_SLOT = required_env("AP_SLOT")
+_configured_multi_rooms = read_instances(Path(os.environ.get("ARCHICORD_DATA_DIR", "archicord_data")))
+HAS_MULTI_ROOMS = bool(_configured_multi_rooms)
+AP_SLOT = (os.environ.get("AP_SLOT", "").strip() if HAS_MULTI_ROOMS else required_env("AP_SLOT"))
+LEGACY_PRIMARY_ENABLED = bool(AP_SLOT)
 AP_PASSWORD = os.environ.get("AP_PASSWORD", "")
 AP_GAME = os.environ.get("AP_GAME", "")
 
-ITEM_CHANNEL_ID = required_id("ITEM_CHANNEL_ID")
-HINT_CHANNEL_ID = required_id("HINT_CHANNEL_ID")
-DEATHLINK_CHANNEL_ID = required_id("DEATHLINK_CHANNEL_ID")
+ITEM_CHANNEL_ID = (required_id("ITEM_CHANNEL_ID") if LEGACY_PRIMARY_ENABLED else
+                   int(os.environ["ITEM_CHANNEL_ID"]) if os.environ.get("ITEM_CHANNEL_ID", "").isdigit() else None)
+HINT_CHANNEL_ID = (required_id("HINT_CHANNEL_ID") if LEGACY_PRIMARY_ENABLED else
+                   int(os.environ["HINT_CHANNEL_ID"]) if os.environ.get("HINT_CHANNEL_ID", "").isdigit() else None)
+DEATHLINK_CHANNEL_ID = (required_id("DEATHLINK_CHANNEL_ID") if LEGACY_PRIMARY_ENABLED else
+                        int(os.environ["DEATHLINK_CHANNEL_ID"]) if os.environ.get("DEATHLINK_CHANNEL_ID", "").isdigit() else None)
 
 
 def optional_channel_env(key: str, default: int | None = None) -> int | None:
@@ -390,8 +398,63 @@ class ArchiCommands(app_commands.Group):
             return
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    async def multi_room_reply(self, interaction: discord.Interaction,
+                               category: str, instanz: str | None) -> bool:
+        """Route existing slash commands to the requested independent AP room."""
+        rooms = self.bot.multi_seed.for_guild(interaction.guild_id)
+        if instanz is None and self.bot.state and self.bot.primary_guild_allowed(interaction.guild_id):
+            return False  # Only the legacy guild can access legacy seed data.
+        if instanz:
+            rooms = [room for room in rooms if room.id.casefold() == instanz.casefold()]
+        if not rooms:
+            await interaction.response.send_message(
+                "Keine passende Multiworld-Instanz verbunden. IDs stehen im WebUI-Reiter Multiworlds.",
+                ephemeral=True)
+            return True
+        if len(rooms) != 1:
+            names = ", ".join(sorted(room.id for room in rooms))[:1200]
+            await interaction.response.send_message(
+                "Mehrere Seeds aktiv. Bitte den Parameter instanz angeben: " + names,
+                ephemeral=True)
+            return True
+        room = rooms[0]
+        if not room.connected:
+            await interaction.response.send_message(
+                f"Multiworld {room.id} ist gerade nicht verbunden.", ephemeral=True)
+            return True
+        state = room.state
+        deaths = state.get("death_counts", {})
+        goals = set(str(x) for x in state.get("goals", []))
+        if category == "status":
+            lines = [f"{'🟢' if slot in room.online else '⚪'} "
+                     f"**{safe_text(name, 100)}** · {safe_text(room.game(slot), 100)}"
+                     for slot, name in sorted(room.players.items())[:25]]
+            title = "👥 Spielerstatus"
+            body = "\n".join(lines) or "Noch keine Spieler."
+        elif category == "deaths":
+            title = "☠️ DeathLink-Rangliste"
+            ranked = sorted(deaths.items(), key=lambda pair: (-pair[1], pair[0]))
+            body = "\n".join(f"**{n}.** {safe_text(name, 80)} — {count}"
+                             for n, (name, count) in enumerate(ranked[:25], 1)) or "Noch keine Tode."
+        elif category == "hints":
+            title = "🔎 Progression-Hints"
+            body = f"Gespeicherte Hint-Ereignisse: {len(state.get('hints_seen', []))}. Einzelne Hint-Details sind für weitere Räume noch nicht als Board verfügbar."
+        else:
+            title = "📊 Multiworld-Fortschritt"
+            body = (f"**Spieler:** {len(room.players)}\n"
+                    f"**Ziele:** {len(goals)}\n"
+                    f"**DeathLinks:** {sum(deaths.values())}\n"
+                    "Logikbasierte Doable Checks sind für zusätzliche Räume noch nicht verfügbar.")
+        embed = discord.Embed(title=f"{title} · {safe_text(room.config['name'], 65)}",
+                              description=body[:3800], color=COLOR_STATS)
+        embed.set_footer(text=f"Instanz: {room.id} · Seed: {plain_text(room.seed, 65)}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return True
+
     @app_commands.command(name="status", description="Online-Status aller Spieler")
-    async def status(self, interaction: discord.Interaction):
+    async def status(self, interaction: discord.Interaction, instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "status", instanz):
+            return
         await self.reply(interaction, self.bot.make_status_board())
 
     @app_commands.command(name="hints", description="Offene oder gefundene Progression-Hints")
@@ -401,23 +464,33 @@ class ArchiCommands(app_commands.Group):
         interaction: discord.Interaction,
         status: Literal["offen", "gefunden", "alle"] = "offen",
         seite: int = 1,
+        instanz: str | None = None,
     ):
+        if await self.multi_room_reply(interaction, "hints", instanz):
+            return
         if seite < 1 or seite > 10000:
             await interaction.response.send_message("Seite muss zwischen 1 und 10000 liegen.", ephemeral=True)
             return
         await self.reply(interaction, self.bot.make_hint_page(status, seite))
 
     @app_commands.command(name="deaths", description="DeathLink-Rangliste dieses Seeds")
-    async def deaths(self, interaction: discord.Interaction):
+    async def deaths(self, interaction: discord.Interaction, instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "deaths", instanz):
+            return
         await self.reply(interaction, self.bot.make_death_board())
 
     @app_commands.command(name="fortschritt", description="Locations und beobachtete Items")
     @app_commands.describe(spieler="Name oder Slotnummer (optional)")
-    async def fortschritt(self, interaction: discord.Interaction, spieler: str | None = None):
+    async def fortschritt(self, interaction: discord.Interaction, spieler: str | None = None,
+                         instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "progress", instanz):
+            return
         await self.reply(interaction, self.bot.make_progress_embed(spieler))
 
     @app_commands.command(name="statistik", description="Seed-Statistik und Spielerfortschritt")
-    async def statistik(self, interaction: discord.Interaction):
+    async def statistik(self, interaction: discord.Interaction, instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "stats", instanz):
+            return
         await self.reply(interaction, self.bot.make_stats_board())
 
     @app_commands.command(name="funktionen", description="Alle Funktionen von ArchiCord")
@@ -456,6 +529,7 @@ class ArchipelagoDiscordBot(discord.Client):
         self.board_event: asyncio.Event | None = None
         self.ut_wakeup: asyncio.Event | None = None
         self.notification_last_sent: dict[str, float] = {}
+        self.multi_seed = MultiSeedManager(self, DATA_DIR)
         self.live_snapshot_dirty = True
         self.last_live_snapshot = 0.0
 
@@ -474,10 +548,13 @@ class ArchipelagoDiscordBot(discord.Client):
         except (discord.Forbidden, discord.HTTPException) as exc:
             print(f"[Discord] Slash-Synchronisation fehlgeschlagen: {exc}")
 
-        asyncio.create_task(self.archipelago_loop())
-        asyncio.create_task(self.board_loop())
-        asyncio.create_task(self.data_poll_loop())
-        asyncio.create_task(self.universal_tracker_loop())
+        # One Discord gateway connection serves all configured AP rooms.
+        self.multi_seed.start()
+        if LEGACY_PRIMARY_ENABLED:
+            asyncio.create_task(self.archipelago_loop())
+            asyncio.create_task(self.board_loop())
+            asyncio.create_task(self.data_poll_loop())
+            asyncio.create_task(self.universal_tracker_loop())
         asyncio.create_task(self.dashboard_snapshot_loop())
         if ARCHIPELAGO_RELEASE_CHANNEL_ID:
             asyncio.create_task(self.archipelago_release_loop())
@@ -522,9 +599,24 @@ class ArchipelagoDiscordBot(discord.Client):
         print(f"Item-Kanal: {ITEM_CHANNEL_ID} | Hint-Kanal: {HINT_CHANNEL_ID}")
         print(f"DeathLink-Kanal: {DEATHLINK_CHANNEL_ID} | Status: {STATUS_CHANNEL_ID}")
 
+    def primary_guild_allowed(self, guild_id: int | None) -> bool:
+        if not guild_id:
+            return False
+        if DISCORD_GUILD_ID:
+            return guild_id == DISCORD_GUILD_ID
+        for channel_id in (ITEM_CHANNEL_ID, HINT_CHANNEL_ID, DEATHLINK_CHANNEL_ID,
+                           STATUS_CHANNEL_ID):
+            if channel_id:
+                channel = self.get_channel(channel_id)
+                if channel and getattr(getattr(channel, "guild", None), "id", None) == guild_id:
+                    return True
+        return False
+
     def commands_allowed(self, interaction: discord.Interaction) -> bool:
         if not interaction.guild_id:
             return False
+        if self.multi_seed.for_guild(interaction.guild_id):
+            return True
         if DISCORD_GUILD_ID:
             return interaction.guild_id == DISCORD_GUILD_ID
         # Ohne Guild-ID keine Daten in fremde Server exportieren.
@@ -896,9 +988,11 @@ class ArchipelagoDiscordBot(discord.Client):
         if not isinstance(item, dict) or receiver_slot is None:
             return
         flags = get_item_flags(item)
-        is_trap = bool(flags & TRAP_FLAG)
-        if not is_trap and not bool(flags & PROGRESSION_FLAG):
+        # Only progression (bit 1) without trap (bit 4) creates an item embed.
+        # Other items, including useful items and traps, never send item embeds.
+        if not is_progression_only(flags):
             return
+        is_trap = False
         key = item_key(item, receiver_slot)
         if key in self.seen_item_keys:
             return
