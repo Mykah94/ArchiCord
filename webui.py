@@ -492,7 +492,7 @@ HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name=
   </section>
 </div>
 <section class="card"><div class="banner"><span class="icon-badge pink">⚙</span><div><strong>Gespeicherte Einstellungen</strong><span class="meta">Der Discord-Token wird unter Windows separat und dauerhaft gespeichert.</span></div></div>
-<div id="fields"></div><label for="discordToken">Discord-Bot-Token (einmalig einrichten oder ersetzen)</label><input id="discordToken" type="password" autocomplete="new-password" placeholder="Leer lassen = gespeicherten Token behalten"><p class="hint" id="tokenStatus"></p><button onclick="action('save')">💾 Speichern</button><button class="restart" onclick="action('save_restart')">💾 Speichern & Neustarten</button></section>
+<div id="fields"></div><label for="discordToken">Discord-Bot-Token (einmalig einrichten oder ersetzen)</label><input id="discordToken" type="password" autocomplete="new-password" placeholder="Leer lassen = gespeicherten Token behalten"><p class="hint" id="tokenStatus"></p><button onclick="saveBotToken()">🔐 Discord-Token sicher speichern</button><button onclick="action('save')">💾 Speichern</button><button class="restart" onclick="action('save_restart')">💾 Speichern & Neustarten</button></section>
 <section class="card"><div class="banner"><span class="icon-badge blue">📝</span><div><strong>Bot-Konsole</strong><span class="meta">Die letzten 250 Logzeilen. Keine Token oder Passwörter hier eingeben.</span></div></div><pre id="log"></pre></section>
 <script>
 const token=__TOKEN__;let edited=false;
@@ -516,6 +516,18 @@ async function refresh(){
     if(!edited)for(const key of Object.keys(names))document.getElementById(key).value=d.settings[key]??'';
     document.getElementById('log').textContent=d.logs.join('\\n');
   }catch(e){document.getElementById('notice').textContent='Verbindung zur WebUI verloren.'}
+}
+async function saveBotToken(){
+  const notice=document.getElementById('notice');
+  const field=document.getElementById('discordToken');
+  if(!field.value.trim()){notice.textContent='Bitte zuerst den Discord-Bot-Token eingeben.';return}
+  try{
+    const r=await fetch('/api/token/save',{method:'POST',
+      headers:{'Content-Type':'application/json','X-ArchiCord-Token':token},
+      body:JSON.stringify({token:field.value})});
+    const d=await r.json();notice.textContent=d.message||'';
+    if(d.ok){field.value='';await refresh()}
+  }catch(e){notice.textContent='Token konnte nicht gespeichert werden.'}
 }
 async function action(op){
   const notice=document.getElementById('notice');notice.textContent='Bitte warten …';
