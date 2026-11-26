@@ -119,3 +119,19 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+  windows-credential-store:
+    name: Windows Credential Manager
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Test real user-scoped Windows Credential Manager
+        run: python -m pytest -q tests/test_discord_credential_store.py

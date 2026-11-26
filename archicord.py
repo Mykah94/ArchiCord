@@ -22,6 +22,7 @@ from tracker.multi_instances import read_instances
 from archipelago_releases import check_release_once
 from archicord_core import add_activity, atomic_json, summarize_seed, notification_config, notification_decision, item_routes, checks_view
 from archicord_i18n import localize_embed
+from discord_credentials import resolve_bot_token
 from tracker.apworld_manager import selected_games, selection_fingerprint, load_selection
 from typing import Any, Literal
 
@@ -58,9 +59,7 @@ def required_id(name: str) -> int:
     return int(value)
 
 
-DISCORD_TOKEN = required_env("DISCORD_TOKEN").strip("\"' ")
-if DISCORD_TOKEN.lower().startswith("bot "):
-    DISCORD_TOKEN = DISCORD_TOKEN[4:].strip()
+DISCORD_TOKEN = resolve_bot_token()
 AP_URL = os.environ.get("AP_URL", "wss://archipelago.gg:61664").strip() or "wss://archipelago.gg:61664"
 if not re.match(r"^wss?://\S+$", AP_URL):
     raise SystemExit(f"[Konfiguration] Ungültige AP_URL: {AP_URL!r}")
