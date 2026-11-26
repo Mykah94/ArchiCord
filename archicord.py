@@ -673,6 +673,7 @@ class ArchipelagoDiscordBot(discord.Client):
                 except (ValueError, TypeError):
                     return None
             slots = self.status_slots[:300]
+            per_player_limit = max(30, min(600, 12000 // max(1, len(slots))))
             confirmed = {slot: confirmed_for(slot) for slot in slots}
             doable = confirmed.get(self.own_slot)
             timestamp = __import__("time").time()
@@ -690,7 +691,7 @@ class ArchipelagoDiscordBot(discord.Client):
                     "missing": own.get("missing", []),
                 },
                 "doable": doable,
-                "locations": {str(k): str(v)[:180] for k, v in locations.items()},
+                "locations": {str(k): str(v)[:180] for k, v in list(locations.items())[:4000]},
                 "players": [
                     {"slot": slot, "name": self.resolve_player_name(slot)[:120],
                      "game": (self.resolve_game(slot) or "")[:120],
@@ -720,8 +721,9 @@ class ArchipelagoDiscordBot(discord.Client):
                     player_checks[str(slot)] = [
                         {"id": int(ident),
                          "name": str(known.get(int(ident), f"Location {ident}"))[:180],
-                         "status": "doable"} for ident in available[:600]]
+                         "status": "doable"} for ident in available[:per_player_limit]]
             snapshot["player_checks"] = player_checks
+            snapshot["checks_page_limit"] = per_player_limit
             # Check rows are derived only from confirmed UT data or checked AP IDs.
             atomic_json(DATA_DIR / "live_v3.json", snapshot)
         except Exception as exc:
