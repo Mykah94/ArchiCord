@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 import stat
@@ -154,3 +155,39 @@ def test_zip_symlinks_rejected(tmp_path):
             "schema": 1, "files": {"archicord_data/secret": "dummy"}}))
     with pytest.raises(ValueError, match="Unsafe backup entry"):
         verify_backup(tmp_path, name)
+
+
+def test_automatic_backup_creates_private_archive(tmp_path, monkeypatch):
+    (tmp_path / ".env").write_text("ARCHICORD_BACKUP_INTERVAL_HOURS=24\\nDISCORD_TOKEN=secret", encoding="utf-8")
+    monkeypatch.setattr(webui, "ROOT", tmp_path)
+    monkeypatch.setattr(webui, "ENV", tmp_path / ".env")
+    class FakeStop:
+        calls = 0
+        def is_set(self):
+            return False
+        def wait(self, duration):
+            self.calls += 1
+            return self.calls >= 2
+    monkeypatch.setattr(webui, "BACKUP_STOP", FakeStop())
+    webui.auto_backup_loop()
+    files = list((tmp_path / "backups").glob("archicord-*.zip"))
+    assert len(files) == 1
+    assert verify_backup(tmp_path, files[0].name)["files"] == 1
+    if os.name != "nt":
+        assert files[0].stat().st_mode & 0o077 == 0
+
+
+def test_automatic_backups_can_be_disabled(tmp_path, monkeypatch):
+    (tmp_path / ".env").write_text("ARCHICORD_BACKUP_INTERVAL_HOURS=0\\n", encoding="utf-8")
+    monkeypatch.setattr(webui, "ROOT", tmp_path)
+    monkeypatch.setattr(webui, "ENV", tmp_path / ".env")
+    class FakeStop:
+        calls = 0
+        def is_set(self):
+            return False
+        def wait(self, duration):
+            self.calls += 1
+            return self.calls >= 2
+    monkeypatch.setattr(webui, "BACKUP_STOP", FakeStop())
+    webui.auto_backup_loop()
+    assert not (tmp_path / "backups").exists()
