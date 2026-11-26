@@ -20,6 +20,8 @@ import threading
 from urllib.parse import unquote, urlsplit
 
 from tracker.apworld_manager import scan_worlds, load_selection, save_selection
+from archicord_maintenance import BackupManager, health_snapshot, backup_scheduler
+from archicord_maintenance_web import maintenance_html
 
 ROOT = Path(__file__).resolve().parent
 ENV = ROOT / '.env'
@@ -66,6 +68,15 @@ def read_env_value(key):
         if match and match.group(1) == key:
             return match.group(2).strip().strip('"\'')
     return ''
+
+
+def maintenance_data_dir():
+    configured = read_env_value('ARCHICORD_DATA_DIR').strip()
+    base = Path(configured).expanduser() if configured else ROOT / 'archicord_data'
+    return base if base.is_absolute() else ROOT / base
+
+
+MAINTENANCE_MANAGER = BackupManager(ROOT, data_dir=maintenance_data_dir())
 
 
 def token_configured():
@@ -374,7 +385,7 @@ hr.soft{border:0;height:1px;background:linear-gradient(90deg, rgba(255,255,255,.
 
 HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Control Center</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a></nav>
+<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/wartung"><span class="icon-badge green">🛡</span>Wartung</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.png" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">ArchiCord</span> Control Center</h1><p>Verwalte deinen Archipelago-Bot mit dem neuen ArchiCord-WebUI-Look: Serververbindung, Live-Status, Konfiguration und Bot-Konsole an einem Ort.</p></div></div></section>
 <div class="grid two">
   <section class="card">
@@ -434,7 +445,7 @@ refresh();setInterval(refresh,2500);
 
 APWORLD_HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord · APWorld-Verwaltung</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/wartung"><span class="icon-badge green">🛡</span>Wartung</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.png" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">APWorld-Verwaltung</span></h1><p>Durchsuche installierte <code>.apworld</code>-Dateien und lege fest, welche Spiele ArchiCord per Universal Tracker live abfragen soll.</p></div></div></section>
 <section class="card"><div class="toolbar"><button class="secondary" id="rescan">↻ APWorlds neu einlesen</button><button class="secondary" id="seedOnly">🎮 Aktuelle Seed-Spiele auswählen</button><button class="secondary" id="selectAll">Alle gültigen</button><button class="secondary" id="selectNone">Keine</button></div>
 <p id="summary" class="section-sub">Lese installierte APWorlds …</p><p id="seedInfo" class="section-sub"></p><p class="warn" id="warnings"></p><div class="toolbar"><input id="search" type="search" placeholder="Spielname oder APWorld-Datei suchen …"><span id="counter" class="number"></span></div></section>
@@ -587,6 +598,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+        elif self.path == '/wartung':
+            raw = maintenance_html(CSRF).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header('Content-Length', str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
         elif self.path == '/apworlds':
             raw = APWORLD_HTML.replace('__TOKEN__', json.dumps(CSRF)).encode('utf-8')
             self.send_response(200)
@@ -608,6 +628,15 @@ class Handler(BaseHTTPRequestHandler):
                                  'seed_games': detected_seed_games()})
             except (OSError, ValueError) as exc:
                 self.reply(400, {'ok': False, 'message': str(exc)})
+        elif self.path == '/api/maintenance':
+            with LOCK:
+                active = is_running()
+                discord_status = BOT_STATUS['discord'] if active else 'offline'
+                ap_status = BOT_STATUS['archipelago'] if active else 'offline'
+            self.reply(200, {'ok': True, 'health': health_snapshot(
+                ROOT, bot_running=active, discord_status=discord_status,
+                ap_status=ap_status, data_dir=maintenance_data_dir()),
+                'backups': MAINTENANCE_MANAGER.status()})
         elif self.path == '/api/status':
             with LOCK:
                 self.reply(200, {'running': is_running(), 'pid': PROCESS.pid if is_running() else None,
@@ -626,7 +655,8 @@ class Handler(BaseHTTPRequestHandler):
         if (origin and origin not in ('http://' + host,)) or not secrets.compare_digest(self.headers.get('X-ArchiCord-Token', ''), CSRF):
             return self.reply(403, {'ok': False, 'message': 'Zugriff verweigert.'})
         if self.path not in ('/api/start', '/api/stop', '/api/restart', '/api/save', '/api/save_restart',
-                             '/api/apworlds/save', '/api/apworlds/save_restart'):
+                             '/api/apworlds/save', '/api/apworlds/save_restart',
+                             '/api/maintenance/backup'):
             return self.reply(404, {'ok': False, 'message': 'Unbekannte Aktion.'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
@@ -635,6 +665,9 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length) or b'{}')
             if not isinstance(data, dict):
                 raise ValueError('Ungültige Anfrage.')
+            if self.path == '/api/maintenance/backup':
+                result = MAINTENANCE_MANAGER.create()
+                return self.reply(200, {'ok': True, 'backup': result})
             if self.path.startswith('/api/apworlds/'):
                 save_selection(ROOT, data.get('worlds'), catalog_worlds())
                 msg = 'APWorld-Auswahl dauerhaft gespeichert. '
@@ -665,6 +698,9 @@ def main():
     if not 1 <= args.port <= 65535:
         parser.error('Port muss zwischen 1 und 65535 liegen.')
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
+    backup_stop = threading.Event()
+    backup_thread = threading.Thread(target=backup_scheduler, args=(MAINTENANCE_MANAGER, backup_stop), daemon=True)
+    backup_thread.start()
     print(f'ArchiCord WebUI: http://127.0.0.1:{args.port}', flush=True)
     print('Nur lokal erreichbar. Strg+C zum Beenden. Bot über die WebUI starten.', flush=True)
     try:
@@ -672,6 +708,8 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        backup_stop.set()
+        backup_thread.join(timeout=2)
         server.server_close()
         shutdown()
 
