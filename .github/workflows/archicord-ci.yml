@@ -114,5 +114,8 @@ jobs:
           print('WebUI JavaScript parsed successfully.')
           PY
 
+      - name: Compile Python entry points and desktop utilities
+        run: python -m compileall -q archicord.py webui.py overlay_studio.py overlay_desktop.py screen_notifications.py overlay_sounds.py env_migration.py tracker
+
       - name: Run tests
         run: python -m pytest -q
