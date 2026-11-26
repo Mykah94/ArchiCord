@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280" role="img" aria-label="ArchiCord mark">
+<title>ArchiCord</title>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9c82f2"/><stop offset="1" stop-color="#627adf"/></linearGradient></defs>
+<rect x="12" y="12" width="256" height="256" rx="60" fill="#14192b"/>
+<rect x="13.5" y="13.5" width="253" height="253" rx="58.5" fill="none" stroke="#3f486b" stroke-width="3"/>
+<path d="M66 155v-18c0-44 30-76 74-76s74 32 74 76v18" fill="none" stroke="url(#g)" stroke-width="17" stroke-linecap="round"/>
+<path d="M65 133h16v57H65c-14 0-24-11-24-24v-9c0-13 10-24 24-24zm134 0h16c14 0 24 11 24 24v9c0 13-10 24-24 24h-16z" fill="#8b7ce7"/>
+<rect x="82" y="112" width="116" height="86" rx="29" fill="#e2e8ff"/>
+<path d="M109 142l-9 8 9 8m62-16 9 8-9 8" fill="none" stroke="#5367ac" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+<path d="M125 176h30" stroke="#5367ac" stroke-width="7" stroke-linecap="round"/>
+<path d="M140 198v24m-20 0h40" stroke="#8b7ce7" stroke-width="9" stroke-linecap="round"/>
+</svg>
