@@ -17,6 +17,7 @@ import re
 import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
 from tracker.multi_seed_sessions import MultiSeedManager
+from tracker.multi_instances import read_instances
 from archipelago_releases import check_release_once
 from archicord_core import add_activity, atomic_json, summarize_seed, notification_config, notification_decision, item_routes, checks_view
 from archicord_i18n import localize_embed
@@ -62,13 +63,19 @@ if DISCORD_TOKEN.lower().startswith("bot "):
 AP_URL = os.environ.get("AP_URL", "wss://archipelago.gg:61664").strip() or "wss://archipelago.gg:61664"
 if not re.match(r"^wss?://\S+$", AP_URL):
     raise SystemExit(f"[Konfiguration] Ungültige AP_URL: {AP_URL!r}")
-AP_SLOT = required_env("AP_SLOT")
+_configured_multi_rooms = read_instances(Path(os.environ.get("ARCHICORD_DATA_DIR", "archicord_data")))
+HAS_MULTI_ROOMS = bool(_configured_multi_rooms)
+AP_SLOT = (os.environ.get("AP_SLOT", "").strip() if HAS_MULTI_ROOMS else required_env("AP_SLOT"))
+LEGACY_PRIMARY_ENABLED = bool(AP_SLOT)
 AP_PASSWORD = os.environ.get("AP_PASSWORD", "")
 AP_GAME = os.environ.get("AP_GAME", "")
 
-ITEM_CHANNEL_ID = required_id("ITEM_CHANNEL_ID")
-HINT_CHANNEL_ID = required_id("HINT_CHANNEL_ID")
-DEATHLINK_CHANNEL_ID = required_id("DEATHLINK_CHANNEL_ID")
+ITEM_CHANNEL_ID = (required_id("ITEM_CHANNEL_ID") if LEGACY_PRIMARY_ENABLED else
+                   int(os.environ["ITEM_CHANNEL_ID"]) if os.environ.get("ITEM_CHANNEL_ID", "").isdigit() else None)
+HINT_CHANNEL_ID = (required_id("HINT_CHANNEL_ID") if LEGACY_PRIMARY_ENABLED else
+                   int(os.environ["HINT_CHANNEL_ID"]) if os.environ.get("HINT_CHANNEL_ID", "").isdigit() else None)
+DEATHLINK_CHANNEL_ID = (required_id("DEATHLINK_CHANNEL_ID") if LEGACY_PRIMARY_ENABLED else
+                        int(os.environ["DEATHLINK_CHANNEL_ID"]) if os.environ.get("DEATHLINK_CHANNEL_ID", "").isdigit() else None)
 
 
 def optional_channel_env(key: str, default: int | None = None) -> int | None:
@@ -541,11 +548,13 @@ class ArchipelagoDiscordBot(discord.Client):
         except (discord.Forbidden, discord.HTTPException) as exc:
             print(f"[Discord] Slash-Synchronisation fehlgeschlagen: {exc}")
 
-        asyncio.create_task(self.archipelago_loop())
+        # One Discord gateway connection serves all configured AP rooms.
         self.multi_seed.start()
-        asyncio.create_task(self.board_loop())
-        asyncio.create_task(self.data_poll_loop())
-        asyncio.create_task(self.universal_tracker_loop())
+        if LEGACY_PRIMARY_ENABLED:
+            asyncio.create_task(self.archipelago_loop())
+            asyncio.create_task(self.board_loop())
+            asyncio.create_task(self.data_poll_loop())
+            asyncio.create_task(self.universal_tracker_loop())
         asyncio.create_task(self.dashboard_snapshot_loop())
         if ARCHIPELAGO_RELEASE_CHANNEL_ID:
             asyncio.create_task(self.archipelago_release_loop())
