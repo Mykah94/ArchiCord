@@ -1,25 +1,29 @@
-# ArchiCord – GitHub-Komplettpaket
+# ArchiCord – Release and maintenance notes 📝
 
-## Enthalten
+## Current repository
 
-- Vollständiger Discord-Bot (`archicord.py`) mit Hints, Items, Traps, Zielen, Status, DeathLinks und Fortschritt
-- Universal-Tracker-Bridge mit Erreichbarkeitslogik-Export (`tracker/ut_bridge.py`)
-- WebUI mit neuem ArchiCord-Design (`webui.py` + `webui_assets/`)
-- APWorld-Verwaltung (`tracker/apworld_manager.py`)
-- Automatische Feature-Nachricht einmal pro Seed (konfigurierbar mit `ARCHICORD_FEATURES_ANNOUNCE`) und `/archi funktionen`
-- Tests und GitHub-Actions-Workflow
-- Installations-, Sicherheits-, Konfigurations- und GitHub-Upload-Anleitungen
+- Full Discord bot source (`archicord.py`): player status, hints, item/trap notifications, goals, DeathLinks and progress displays.
+- Optional Universal Tracker CLI bridge (`tracker/ut_bridge.py`) with bounded output, timeout and exact location-name mapping.
+- APWorld manifest discovery and game selection (`tracker/apworld_manager.py`).
+- Local web control panel (`webui.py`) and **new replacement SVG artwork** (`webui_assets/`).
+- Per-seed feature announcement, controlled by `ARCHICORD_FEATURES_ANNOUNCE`, and `/archi funktionen`.
+- Regression tests and GitHub Actions on Python 3.11 and 3.13.
+- English setup, configuration, troubleshooting, security and contribution documentation.
 
-## Was absichtlich fehlt
+## Restoration notes
 
-- **Keine `.env` mit Token oder Passwörtern** (nur `.env.example`)
-- Keine persönlichen YAMLs, APWorlds, Seed-ZIPs, Spoiler, DeathLink-Zähler oder Laufzeitdaten
-- Keine mitgelieferte Discord- oder Archipelago-Installation
-- Keine pauschale Kompatibilitätsgarantie für alle Archipelago-Welten
-- Keine automatisch erteilte Open-Source-Lizenz (bitte bewusst selbst auswählen)
+Earlier source archives documented additional assets that were missing from the available GitHub history. The tracker bridge and APWorld manager were **reconstructed**, not recovered byte-for-byte. New original vector artwork replaces the missing Web UI images. The original images are **not** claimed to have been restored.
 
-## Verifikation
+## What is intentionally not included
 
-Die automatisierte lokale Testsuite wurde unter Python 3.13 ausgeführt und umfasst 44 Tests.
-Die HTML/JavaScript-Funktionen wurden auf JavaScript-Syntax geprüft.
-Vollständige Live-Tests mit Discord, Windows und Universal Tracker sind damit nicht ersetzt.
+- No `.env` credentials (only the safe `.env.example`).
+- No personal player YAMLs, APWorld files, seed archives, spoilers, DeathLink counts or runtime data.
+- No bundled Discord/Archipelago installation.
+- No guarantee that all Universal Tracker/APWorld versions work together.
+- No automatic open-source license grant; the maintainer must choose one explicitly.
+
+## Verification status
+
+GitHub Actions runs automated Python checks. Those checks cover key contracts, parser behavior, local Web UI security and data snapshot handling; they **do not** replace full end-to-end Discord, Windows or Archipelago tests. Local installations, especially Universal Tracker, must be validated with their own world/YAML versions.
+
+See [restoration review](docs/RESTORATION_REVIEW.md).
