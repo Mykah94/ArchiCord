@@ -1547,8 +1547,17 @@ class ArchipelagoDiscordBot(discord.Client):
             try:
                 if "status" in dirty:
                     await self.update_presence()
-                    if STATUS_CHANNEL_ID:
-                        await self.upsert_board("status", STATUS_CHANNEL_ID, self.make_status_board())
+                    status_target = STATUS_CHANNEL_ID
+                    enabled = True
+                    try:
+                        cfg = notification_config(DATA_DIR / "notifications_v3.json")
+                        enabled = cfg.get("enabled", {}).get("status", True)
+                        status_target = int(cfg.get("channels", {}).get("status") or STATUS_CHANNEL_ID or 0)
+                    except (OSError, ValueError, TypeError):
+                        status_target = STATUS_CHANNEL_ID
+                    # Status is a persistent board, so cooldowns never delay its refresh.
+                    if enabled and status_target:
+                        await self.upsert_board("status", status_target, self.make_status_board())
                 if "hints" in dirty:
                     await self.upsert_board("hints", HINT_BOARD_CHANNEL_ID, self.make_live_hint_board())
                 if "deaths" in dirty:
