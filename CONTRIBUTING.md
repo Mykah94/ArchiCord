@@ -1,10 +1,18 @@
-# Zu ArchiCord beitragen
+# Contributing to ArchiCord 🤝
 
-Beiträge zu Fehlerbehebungen, Dokumentation und zusätzlichen Tracker-Diagnosen sind willkommen.
+Bug fixes, documentation improvements, tests and well-scoped Universal Tracker diagnostics are welcome.
 
-1. Repository forken und eigenen Branch anlegen.
-2. Keine `.env`, YAMLs, APWorlds, Seed-ZIPs, Spoiler oder privaten Botsitzungsdaten committen.
-3. Tests lokal ausführen: `python -m pip install -r requirements-dev.txt` und `python -m pytest -q`.
-4. Pull Request mit einer klaren Beschreibung und nach Möglichkeit Tests erstellen.
+1. Fork the repository and create a descriptive working branch.
+2. **Never commit** `.env`, private YAMLs, APWorld archives, seed ZIPs, spoiler files or bot runtime data.
+3. Install development requirements and run the tests:
 
-Bei Änderungen der Universal-Tracker-Bridge bitte zwischen harmlosen Launcher-Logs, unbekannten Location-Namen und echten YAML-/Logikfehlern unterscheiden. Keine nicht bestätigten Doable-Zahlen erfinden.
+   ```bash
+   python -m pip install -r requirements-dev.txt
+   python -m pytest -q
+   ```
+
+4. Submit a pull request describing the change, user-facing behavior, and the tests you ran.
+
+**Compatibility is important.** Preserve Discord commands, DeathLink milestones, hint behavior, stored seed state and existing configuration keys unless an intentional breaking change is clearly documented.
+
+When changing the Universal Tracker bridge, distinguish harmless launcher diagnostics, unknown locations, and actual YAML/world-logic failures. **Never invent doable checks** from missing-location lists or uncertain output. Do not claim Windows/Discord/Archipelago integration was verified unless it was actually tested.
