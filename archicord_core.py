@@ -12,9 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import stat
-import tempfile
 import time
 import zipfile
 
@@ -341,6 +339,10 @@ def create_backup(root: Path, *, keep: int = 10) -> dict:
     if folder.is_symlink() or not folder.resolve().is_relative_to(root.resolve()):
         raise ValueError("Unsafe backup directory")
     folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    try:
+        os.chmod(folder, 0o700)
+    except OSError:
+        pass
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     name = f"archicord-{stamp}-{os.urandom(3).hex()}.zip"
     destination = folder / name
@@ -431,6 +433,10 @@ def restore_backup(root: Path, name: str, *, stopped: bool) -> dict:
                 tmp = dest.with_name(f".{dest.name}.{os.getpid()}.restore")
                 try:
                     with tmp.open("xb") as stream:
+                        try:
+                            os.chmod(tmp, 0o600)
+                        except OSError:
+                            pass
                         stream.write(archive.read(info))
                         stream.flush()
                         os.fsync(stream.fileno())
@@ -448,6 +454,10 @@ def restore_backup(root: Path, name: str, *, stopped: bool) -> dict:
                     replacement = target.with_name(f".{target.name}.{os.getpid()}.rollback")
                     try:
                         with replacement.open("xb") as handle:
+                            try:
+                                os.chmod(replacement, 0o600)
+                            except OSError:
+                                pass
                             handle.write(archive.read(filename))
                             handle.flush()
                             os.fsync(handle.fileno())
