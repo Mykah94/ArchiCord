@@ -30,7 +30,8 @@ async def run_room_tracker(room, *, interval:int=180) -> None:
                         room.config["slot"],room.config.get("password",""),names,timeout=90)
                     if room.connected and room.seed==seed and room.team==team:
                         payload={"seed":seed,"team":team,"slot":room.own_slot,
-                                 "updated_at":time.time(),"doable":matched,"known":True}
+                                 "updated_at":time.time(),"doable":matched,"known":True,
+                                 "locations":{str(n):str(names[n])[:160] for n in matched}}
                         atomic_json(room.root/"ut_checks.json",payload)
                         room.tracker_status="confirmed"
                         room.tracker_doable=len(matched)
