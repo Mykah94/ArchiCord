@@ -16,6 +16,7 @@ import os
 import re
 import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
+from tracker.multi_seed_sessions import MultiSeedManager
 from archipelago_releases import check_release_once
 from archicord_core import add_activity, atomic_json, summarize_seed, notification_config, notification_decision, item_routes, checks_view
 from archicord_i18n import localize_embed
@@ -456,6 +457,7 @@ class ArchipelagoDiscordBot(discord.Client):
         self.board_event: asyncio.Event | None = None
         self.ut_wakeup: asyncio.Event | None = None
         self.notification_last_sent: dict[str, float] = {}
+        self.multi_seed = MultiSeedManager(self, DATA_DIR)
         self.live_snapshot_dirty = True
         self.last_live_snapshot = 0.0
 
@@ -475,6 +477,7 @@ class ArchipelagoDiscordBot(discord.Client):
             print(f"[Discord] Slash-Synchronisation fehlgeschlagen: {exc}")
 
         asyncio.create_task(self.archipelago_loop())
+        self.multi_seed.start()
         asyncio.create_task(self.board_loop())
         asyncio.create_task(self.data_poll_loop())
         asyncio.create_task(self.universal_tracker_loop())
@@ -525,6 +528,8 @@ class ArchipelagoDiscordBot(discord.Client):
     def commands_allowed(self, interaction: discord.Interaction) -> bool:
         if not interaction.guild_id:
             return False
+        if self.multi_seed.for_guild(interaction.guild_id):
+            return True
         if DISCORD_GUILD_ID:
             return interaction.guild_id == DISCORD_GUILD_ID
         # Ohne Guild-ID keine Daten in fremde Server exportieren.
@@ -896,9 +901,11 @@ class ArchipelagoDiscordBot(discord.Client):
         if not isinstance(item, dict) or receiver_slot is None:
             return
         flags = get_item_flags(item)
-        is_trap = bool(flags & TRAP_FLAG)
-        if not is_trap and not bool(flags & PROGRESSION_FLAG):
+        # Only progression (bit 1) without trap (bit 4) creates an item embed.
+        # Other items, including useful items and traps, never send item embeds.
+        if not is_progression_only(flags):
             return
+        is_trap = False
         key = item_key(item, receiver_slot)
         if key in self.seen_item_keys:
             return
