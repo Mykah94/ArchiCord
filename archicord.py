@@ -671,8 +671,25 @@ class ArchipelagoDiscordBot(discord.Client):
                     for result in [self.slot_doable(slot) if self.ap_connected else None]
                 ],
                 "item_routes": item_routes(self.state),
+                "own_slot": self.own_slot,
             }
             snapshot["checks"] = checks_view(snapshot)
+            # Other players have only confirmed UT-doable locations. Their
+            # missing/checked totals cannot be inferred from our bot slot.
+            player_checks = {}
+            for slot in self.status_slots[:300]:
+                known = self.location_names.get(self.resolve_game(slot), {})
+                available = self.slot_doable(slot) if self.ap_connected else None
+                if slot == self.own_slot:
+                    player_checks[str(slot)] = snapshot["checks"][:600]
+                elif available is None:
+                    player_checks[str(slot)] = []
+                else:
+                    player_checks[str(slot)] = [
+                        {"id": int(ident),
+                         "name": str(known.get(int(ident), f"Location {ident}"))[:180],
+                         "status": "doable"} for ident in available[:600]]
+            snapshot["player_checks"] = player_checks
             # Check rows are derived only from confirmed UT data or checked AP IDs.
             atomic_json(DATA_DIR / "live_v3.json", snapshot)
         except Exception as exc:
