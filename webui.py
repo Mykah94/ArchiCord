@@ -487,13 +487,13 @@ HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name=
   </section>
   <section class="card">
     <div class="banner"><span class="icon-badge gold">🔒</span><div><strong>Sicherheit & Hinweise</strong><span class="meta">Die WebUI läuft nur lokal auf 127.0.0.1.</span></div></div>
-    <p class="section-sub">Dein Discord-Token wird <strong>niemals angezeigt</strong> und beim normalen Speichern auch nicht überschrieben. Änderungen an der Konfiguration werden dauerhaft in derselben <code>.env</code> gesichert.</p>
+    <p class="section-sub">Dein Discord-Bot-Token wird unter Windows <strong>einmalig im Windows-Anmeldeinformationsmanager</strong> gespeichert. Er wird nicht in der <code>.env</code> benötigt und niemals in der WebUI angezeigt. Andere Einstellungen bleiben in der <code>.env</code>.</p>
     <p class="section-sub">Die WebUI startet und steuert den <strong>ArchiCord-Bot</strong>, nicht den Archipelago-Server selbst.</p>
     <p class="footer-note">Schließen der WebUI: <strong>Strg+C</strong> im Terminal.</p>
   </section>
 </div>
-<section class="card"><div class="banner"><span class="icon-badge pink">⚙</span><div><strong>Gespeicherte .env-Einstellungen</strong><span class="meta">Alle Änderungen bleiben dauerhaft erhalten. Der Discord-Token bleibt verborgen.</span></div></div>
-<div id="fields"></div><label for="discordToken">Discord-Token (optional neu setzen)</label><input id="discordToken" type="password" autocomplete="new-password" placeholder="Leer lassen = gespeicherten Token behalten"><p class="hint" id="tokenStatus"></p><button onclick="action('save')">💾 Speichern</button><button class="restart" onclick="action('save_restart')">💾 Speichern & Neustarten</button></section>
+<section class="card"><div class="banner"><span class="icon-badge pink">⚙</span><div><strong>Gespeicherte Einstellungen</strong><span class="meta">Der Discord-Token wird unter Windows separat und dauerhaft gespeichert.</span></div></div>
+<div id="fields"></div><label for="discordToken">Discord-Bot-Token (einmalig einrichten oder ersetzen)</label><input id="discordToken" type="password" autocomplete="new-password" placeholder="Leer lassen = gespeicherten Token behalten"><p class="hint" id="tokenStatus"></p><button onclick="action('save')">💾 Speichern</button><button class="restart" onclick="action('save_restart')">💾 Speichern & Neustarten</button></section>
 <section class="card"><div class="banner"><span class="icon-badge blue">📝</span><div><strong>Bot-Konsole</strong><span class="meta">Die letzten 250 Logzeilen. Keine Token oder Passwörter hier eingeben.</span></div></div><pre id="log"></pre></section>
 <script>
 const token=__TOKEN__;let edited=false;
@@ -508,7 +508,8 @@ function decoratePill(elem, running){elem.className='pill '+(running?'on':'off')
 async function refresh(){
   try{
     const r=await fetch('/api/status',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();
-    document.getElementById('tokenStatus').textContent=d.token_configured?'✓ Discord-Token ist lokal gespeichert (Wert verborgen).':'⚠ Noch kein Discord-Token gespeichert.';
+    document.getElementById('tokenStatus').textContent=d.token_configured?'✓ Discord-Token gespeichert und bei jedem Bot-Start automatisch verfügbar.':'⚠ Noch kein Discord-Token eingerichtet.';
+    if(d.token_configured && d.token_storage==='windows_credential_manager')document.getElementById('tokenStatus').textContent='✓ Sicher im Windows-Anmeldeinformationsmanager gespeichert. Keine Token-Eingabe mehr nötig.';
     const s=document.getElementById('state');s.textContent=d.running?'● Läuft (PID '+d.pid+')':'● Gestoppt';decoratePill(s,d.running);
     document.getElementById('discordState').textContent=uiStatusText(d.discord_status);
     document.getElementById('apState').textContent=uiStatusText(d.archipelago_status);
@@ -924,7 +925,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, {'running': is_running(), 'pid': PROCESS.pid if is_running() else None,
                     'settings': {k: v for k, v in read_settings().items() if k != 'AP_PASSWORD'},
                     'ap_password_configured': bool(read_env_value('AP_PASSWORD')),
-                    'token_configured': token_configured(), 'logs': safe_logs(),
+                    'token_configured': token_configured(),
+                    'token_storage': ('windows_credential_manager' if secure_token_supported() and get_saved_token()
+                                      else 'legacy_env' if token_configured() else 'none'),
+                    'logs': safe_logs(),
                     'discord_status': BOT_STATUS['discord'] if is_running() else 'offline',
                     'archipelago_status': BOT_STATUS['archipelago'] if is_running() else 'offline',
                     'last_error': redact_text(BOT_STATUS['last_error']), 'exit_code': BOT_STATUS['exit_code']})
