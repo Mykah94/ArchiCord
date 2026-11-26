@@ -16,6 +16,7 @@ import websockets
 
 from tracker.room_connection import resolve_room_url
 from tracker.overlay_events import append_event
+from tracker.community_features import wish_match,run_entry,run_begin
 from tracker.multi_instances import (
     atomic_json, instance_directory, read_instances, safe_read, seed_path,
 )
@@ -64,6 +65,7 @@ class RoomObserver:
         self.pending_items: list[dict] = []
         self.state = fresh_state("", 0)
         self._board_lock = asyncio.Lock()
+        self._run_lock = asyncio.Lock()
 
     def status(self) -> dict:
         return {
@@ -147,6 +149,8 @@ class RoomObserver:
         self.connected = True
         self.error = ""
         self.save_state()
+        if self.config.get('thread_enabled'):
+            await self.ensure_run_thread()
         await self.ws.send(json.dumps([{"cmd": "GetDataPackage",
               "games": sorted(set(self.games.values()) - {""})}]))
         print(f"[Multiworld:{self.id}] Connected to seed {text(seed)} ({len(self.players)} players)")
@@ -186,6 +190,18 @@ class RoomObserver:
                 self.save_state()
             except OSError as exc:
                 print(f'[Multiworld:{self.id}] OBS event log: {type(exc).__name__}')
+        if key in self.state.get('observed_items', []):
+            for guild, user, wish in wish_match(self.state,receiver,name,
+                    self.player(finder),location,key):
+                if str(guild)!=str(self.config['guild_id']):
+                    continue
+                try:
+                    recipient=await self.client.fetch_user(user)
+                    await recipient.send('🎁 Wishlist item found: '+text(name,120)+
+                         ' · '+text(self.seed,80),allowed_mentions=discord.AllowedMentions.none())
+                except (discord.Forbidden,discord.HTTPException,discord.NotFound):
+                    pass
+            self.save_state()
         if not progression_only(flags) or key in self.state.get('items_seen', []):
             return
         embed = self.embed("✨ Progression Item", f"**{text(name)}**", 0xa94cf7)
@@ -245,6 +261,32 @@ class RoomObserver:
         if counts[name] % 25 == 0:
             await self.send("death_channel_id", self.embed(
                 "💀 DeathLink milestone", f"**{text(name)}** has died **{counts[name]}** times.", 0xff4b8e))
+
+    async def ensure_run_thread(self) -> None:
+        """Create at most one Discord thread for the current seed/guild/team."""
+        parent_id=self.config.get("thread_parent_channel_id") or self.config.get("status_channel_id")
+        if not parent_id or not self.seed:
+            return
+        async with self._run_lock:
+            guild=self.config["guild_id"]
+            existing=run_entry(self.state,guild,self.seed,self.team)
+            if existing is not None:
+                return  # A manually closed run must not be reopened on reconnect.
+            try:
+                channel=self.client.get_channel(int(parent_id)) or await self.client.fetch_channel(int(parent_id))
+                if not isinstance(channel,discord.TextChannel) or str(channel.guild.id)!=str(guild):
+                    return
+                thread=await channel.create_thread(
+                    name=("🌈 "+self.config["name"][:26]+" · "+self.seed[:40]),
+                    type=discord.ChannelType.public_thread,auto_archive_duration=1440,
+                    reason="ArchiCord automatic Multiworld run")
+                run_begin(self.state,guild,self.seed,self.team,parent_id,thread.id)
+                self.save_state()
+                await thread.send(embed=self.embed("🌈 Multiworld run",
+                     "Seed: "+text(self.seed,110)+" · Team: "+str(self.team)),
+                     allowed_mentions=discord.AllowedMentions.none())
+            except (discord.Forbidden,discord.NotFound,discord.HTTPException,ValueError) as exc:
+                print(f"[Multiworld:{self.id}] Run thread not created: {type(exc).__name__}")
 
     async def update_death_board(self) -> None:
         raw = self.config.get("death_channel_id")
