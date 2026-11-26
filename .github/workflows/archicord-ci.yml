@@ -77,5 +77,31 @@ jobs:
           print(f'Compiled {sum(bool(p) for p in paths)} tracked Python files.')
           PY
 
+      - name: Validate embedded WebUI JavaScript
+        run: |
+          python - <<'PY'
+          import re
+          import subprocess
+          import tempfile
+          from pathlib import Path
+          import webui
+          from archicord_dashboard import render_dashboard
+
+          pages = {
+              'control': webui.HTML,
+              'apworlds': webui.APWORLD_HTML,
+              'resources': webui.RESOURCES_HTML,
+              'dashboard': render_dashboard('dashboard', webui.BASE_STYLE, 'test-csrf'),
+              'notifications': render_dashboard('notifications', webui.BASE_STYLE, 'test-csrf'),
+          }
+          with tempfile.TemporaryDirectory() as tmp:
+              for name, page in pages.items():
+                  for number, code in enumerate(re.findall(r'<script[^>]*>(.*?)</script>', page, re.S)):
+                      path = Path(tmp) / f'{name}-{number}.js'
+                      path.write_text(code, encoding='utf-8')
+                      subprocess.run(['node', '--check', str(path)], check=True)
+          print('WebUI JavaScript parsed successfully.')
+          PY
+
       - name: Run tests
         run: python -m pytest -q

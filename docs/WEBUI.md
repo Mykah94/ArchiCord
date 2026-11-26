@@ -19,6 +19,14 @@ In **Bot Control**, enter a numeric Discord text-channel ID in **Release announc
 
 The bot needs permission to send embeds in the selected channel. This is **not** an updater and does not announce individual APWorld changes.
 
+## ArchiCord 3 Multiworld Center
+
+Use the **Dashboard** tab for live players, confirmed doable checks, session history, item routes, system health, APWorld diagnostics, achievements and notification preferences. Existing Bot Control, APWorld Manager and Resources pages remain available at their original paths.
+
+The **Backups** page creates and verifies sensitive local ZIP files. Restore requires explicit confirmation and the bot must be stopped. Automatic private backups can be enabled or disabled with ARCHICORD_BACKUP_INTERVAL_HOURS (default 24 hours; 0 disables).
+
+English and German preferences can be selected separately for Web UI labels and recognized built-in Discord embeds. Some existing German command descriptions and third-party content remain unchanged. See [ArchiCord 3 feature guide](ARCHICORD_3_FEATURES.md).
+
 ## Artwork
 
 The original historical PNG artwork was missing from the accessible repository. The current repository includes **new SVG replacements** for the ArchiCord logo and background; the original HTML/CSS/JavaScript dashboard design remains otherwise unchanged.

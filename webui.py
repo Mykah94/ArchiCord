@@ -20,6 +20,10 @@ import threading
 from urllib.parse import unquote, urlsplit
 
 from tracker.apworld_manager import scan_worlds, load_selection, save_selection
+from archicord_dashboard import PAGES as DASHBOARD_PAGES, render_dashboard
+from archicord_core import (read_json, history, compatibility, notification_config,
+    save_notification_config, create_backup, list_backups, verify_backup,
+    restore_backup, health)
 
 ROOT = Path(__file__).resolve().parent
 ENV = ROOT / '.env'
@@ -42,7 +46,7 @@ BOT_STATUS = {"discord": "offline", "archipelago": "offline", "last_error": "", 
 FIELDS = (
     'AP_URL', 'AP_SLOT', 'AP_PASSWORD', 'AP_GAME', 'ITEM_CHANNEL_ID',
     'HINT_CHANNEL_ID', 'DEATHLINK_CHANNEL_ID', 'STATUS_CHANNEL_ID',
-    'ARCHIPELAGO_RELEASE_CHANNEL_ID',
+    'ARCHIPELAGO_RELEASE_CHANNEL_ID', 'ARCHICORD_BACKUP_INTERVAL_HOURS',
     'ARCHICORD_AP_INSTALL_DIR', 'ARCHICORD_APWORLD_DIRS'
 )
 DEFAULTS = {
@@ -55,6 +59,7 @@ DEFAULTS = {
     'DEATHLINK_CHANNEL_ID': '',
     'STATUS_CHANNEL_ID': '',
     'ARCHIPELAGO_RELEASE_CHANNEL_ID': '',
+    'ARCHICORD_BACKUP_INTERVAL_HOURS': '24',
     'ARCHICORD_AP_INSTALL_DIR': r'C:\ProgramData\Archipelago',
     'ARCHICORD_APWORLD_DIRS': '',
 }
@@ -138,6 +143,8 @@ def save_settings(values):
             raise ValueError(f'Ungültiger Wert für {key}.')
         if key == 'AP_URL':
             value = parse_address(value)
+        if key == 'ARCHICORD_BACKUP_INTERVAL_HOURS' and (not value.isdigit() or not 0 <= int(value) <= 168):
+            raise ValueError('Backup interval must be from 0 to 168 hours.')
         if key.endswith('_CHANNEL_ID') and value and not re.fullmatch(r'\d{15,22}', value):
             raise ValueError(f'{key} muss eine Discord-Kanal-ID sein.')
         if key == 'AP_SLOT' and not value:
@@ -407,7 +414,7 @@ button:hover{filter:brightness(1.13)}
 
 HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Control Center</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
+<nav class="navbar"><a class="nav-pill active" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">ArchiCord</span> Control Center</h1><p>Verwalte deinen Archipelago-Bot mit dem neuen ArchiCord-WebUI-Look: Serververbindung, Live-Status, Konfiguration und Bot-Konsole an einem Ort.</p></div></div></section>
 <div class="grid two">
   <section class="card">
@@ -433,7 +440,7 @@ HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name=
 <section class="card"><div class="banner"><span class="icon-badge blue">📝</span><div><strong>Bot-Konsole</strong><span class="meta">Die letzten 250 Logzeilen. Keine Token oder Passwörter hier eingeben.</span></div></div><pre id="log"></pre></section>
 <script>
 const token=__TOKEN__;let edited=false;
-const names={AP_URL:'Archipelago-Adresse / Port',AP_SLOT:'Slot-Name',AP_PASSWORD:'Archipelago-Passwort',AP_GAME:'Spiel',ITEM_CHANNEL_ID:'Item-Kanal',HINT_CHANNEL_ID:'Hint-Kanal',DEATHLINK_CHANNEL_ID:'DeathLink-Kanal',STATUS_CHANNEL_ID:'Status-Kanal',ARCHIPELAGO_RELEASE_CHANNEL_ID:'Release announcement channel',ARCHICORD_AP_INSTALL_DIR:'Archipelago-Installationsordner',ARCHICORD_APWORLD_DIRS:'Zusätzliche APWorld-Ordner (mit ; getrennt)'};
+const names={AP_URL:'Archipelago-Adresse / Port',AP_SLOT:'Slot-Name',AP_PASSWORD:'Archipelago-Passwort',AP_GAME:'Spiel',ITEM_CHANNEL_ID:'Item-Kanal',HINT_CHANNEL_ID:'Hint-Kanal',DEATHLINK_CHANNEL_ID:'DeathLink-Kanal',STATUS_CHANNEL_ID:'Status-Kanal',ARCHIPELAGO_RELEASE_CHANNEL_ID:'Release announcement channel',ARCHICORD_BACKUP_INTERVAL_HOURS:'Automatic backup interval in hours (0 = off)',ARCHICORD_AP_INSTALL_DIR:'Archipelago-Installationsordner',ARCHICORD_APWORLD_DIRS:'Zusätzliche APWorld-Ordner (mit ; getrennt)'};
 const fields=document.getElementById('fields');
 for(const [key,name] of Object.entries(names)){
   const label=document.createElement('label');label.htmlFor=key;label.textContent=name+' ('+key+')';
@@ -467,7 +474,7 @@ refresh();setInterval(refresh,2500);
 
 APWORLD_HTML = '''<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord · APWorld-Verwaltung</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot-Steuerung</a><a class="nav-pill active" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld-Verwaltung</a><a class="nav-pill" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord Logo"><div class="hero-copy"><h1><span class="title-gradient">APWorld-Verwaltung</span></h1><p>Durchsuche installierte <code>.apworld</code>-Dateien und lege fest, welche Spiele ArchiCord per Universal Tracker live abfragen soll.</p></div></div></section>
 <section class="card"><div class="toolbar"><button class="secondary" id="rescan">↻ APWorlds neu einlesen</button><button class="secondary" id="seedOnly">🎮 Aktuelle Seed-Spiele auswählen</button><button class="secondary" id="selectAll">Alle gültigen</button><button class="secondary" id="selectNone">Keine</button></div>
 <p id="summary" class="section-sub">Lese installierte APWorlds …</p><p id="seedInfo" class="section-sub"></p><p class="warn" id="warnings"></p><div class="toolbar"><input id="search" type="search" placeholder="Spielname oder APWorld-Datei suchen …"><span id="counter" class="number"></span></div></section>
@@ -560,7 +567,7 @@ readCatalog();
 
 RESOURCES_HTML = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ArchiCord Resources</title><style>'''+BASE_STYLE+'''</style></head><body><main>
-<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot Control</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld Manager</a><a class="nav-pill active" href="/resources"><span class="icon-badge gold">📚</span>Resources</a></nav>
+<nav class="navbar"><a class="nav-pill" href="/"><span class="icon-badge blue">🎮</span>Bot Control</a><a class="nav-pill" href="/apworlds"><span class="icon-badge pink">🧩</span>APWorld Manager</a><a class="nav-pill active" href="/resources"><span class="icon-badge gold">📚</span>Resources</a><a class="nav-pill" href="/dashboard"><span class="icon-badge blue">📊</span>Live Dashboard</a></nav>
 <section class="hero"><div class="brand"><img src="/assets/archicord-logo.svg" alt="ArchiCord icon"><div class="hero-copy"><h1><span class="title-gradient">Archipelago Resources</span></h1><p>Official websites, software releases, and help for your Multiworld adventures.</p></div></div></section>
 <div class="grid two">
 <section class="card"><div class="banner"><span class="icon-badge blue">🌍</span><div><strong>Official Archipelago Website</strong><span class="meta">Games, guides and Multiworld information.</span></div></div><p class="section-sub">Visit the official Archipelago website to learn about the software and supported games.</p><p><a href="https://archipelago.gg/" target="_blank" rel="noopener noreferrer">🌐 Open archipelago.gg ↗</a></p></section>
@@ -589,6 +596,18 @@ def detected_seed_games():
         except (SyntaxError, ValueError, TypeError):
             pass
     return []
+
+
+def v3_data_directory():
+    configured = read_env_value('ARCHICORD_DATA_DIR') or 'archicord_data'
+    path = Path(configured).expanduser()
+    return path if path.is_absolute() else ROOT / path
+
+
+def v3_snapshot():
+    path = v3_data_directory() / 'live_v3.json'
+    data = read_json(path)
+    return data if isinstance(data, dict) else None
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -665,6 +684,46 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+        elif self.path.strip('/') in DASHBOARD_PAGES:
+            page = self.path.strip('/')
+            raw = render_dashboard(page, BASE_STYLE, CSRF).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header('Content-Length', str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        elif self.path.startswith('/api/v3/'):
+            try:
+                endpoint = self.path[len('/api/v3/'):]
+                if endpoint == 'dashboard':
+                    snapshot = v3_snapshot() if is_running() else None
+                    self.reply(200, {'ok': True, 'snapshot': snapshot})
+                elif endpoint == 'history':
+                    self.reply(200, {'ok': True, 'history': history(v3_data_directory())})
+                elif endpoint == 'compatibility':
+                    self.reply(200, {'ok': True, 'worlds': compatibility(catalog_worlds())})
+                elif endpoint == 'notifications':
+                    self.reply(200, {'ok': True, 'config': notification_config(
+                        v3_data_directory() / 'notifications_v3.json')})
+                elif endpoint == 'backups':
+                    self.reply(200, {'ok': True, 'backups': list_backups(ROOT)})
+                elif endpoint == 'health':
+                    if not is_running():
+                        status = {'status': 'offline', 'reason': 'Bot process stopped', 'components': {
+                            'discord': 'offline', 'archipelago': 'offline', 'universal_tracker': 'offline'}}
+                    else:
+                        status = health(v3_snapshot())
+                        status['components']['discord'] = BOT_STATUS['discord']
+                        status['components']['archipelago'] = BOT_STATUS['archipelago']
+                    self.reply(200, {'ok': True, 'status': status})
+                else:
+                    self.reply(404, {'ok': False, 'message': 'Unknown API endpoint'})
+            except (OSError, ValueError, TypeError, OverflowError) as exc:
+                self.reply(400, {'ok': False, 'message': 'Cannot read local feature data: ' + type(exc).__name__})
         elif self.path == '/api/apworlds':
             try:
                 catalog = catalog_worlds()
@@ -697,7 +756,9 @@ class Handler(BaseHTTPRequestHandler):
         if (origin and origin not in ('http://' + host,)) or not secrets.compare_digest(self.headers.get('X-ArchiCord-Token', ''), CSRF):
             return self.reply(403, {'ok': False, 'message': 'Zugriff verweigert.'})
         if self.path not in ('/api/start', '/api/stop', '/api/restart', '/api/save', '/api/save_restart',
-                             '/api/apworlds/save', '/api/apworlds/save_restart'):
+                             '/api/apworlds/save', '/api/apworlds/save_restart',
+                             '/api/v3/notifications/save', '/api/v3/backup/create',
+                             '/api/v3/backup/verify', '/api/v3/backup/restore'):
             return self.reply(404, {'ok': False, 'message': 'Unbekannte Aktion.'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
@@ -706,6 +767,24 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length) or b'{}')
             if not isinstance(data, dict):
                 raise ValueError('Ungültige Anfrage.')
+            if self.path == '/api/v3/notifications/save':
+                settings = save_notification_config(
+                    v3_data_directory() / 'notifications_v3.json', data.get('config'))
+                return self.reply(200, {'ok': True, 'config': settings,
+                    'message': 'Notification settings saved. Restart the bot to apply changes.'})
+            if self.path == '/api/v3/backup/create':
+                with LOCK:
+                    result = create_backup(ROOT)
+                return self.reply(200, {'ok': True, 'backup': result})
+            if self.path == '/api/v3/backup/verify':
+                result = verify_backup(ROOT, data.get('name', ''))
+                return self.reply(200, {'ok': True, 'backup': result})
+            if self.path == '/api/v3/backup/restore':
+                if data.get('confirm') != 'RESTORE':
+                    raise ValueError('Explicit restore confirmation required.')
+                with LOCK:
+                    result = restore_backup(ROOT, data.get('name', ''), stopped=not is_running())
+                return self.reply(200, {'ok': True, 'result': result})
             if self.path.startswith('/api/apworlds/'):
                 save_selection(ROOT, data.get('worlds'), catalog_worlds())
                 msg = 'APWorld-Auswahl dauerhaft gespeichert. '
@@ -728,6 +807,34 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(400, {'ok': False, 'message': str(exc)})
 
 
+def auto_backup_loop():
+    """Create private local backups periodically, independently of bot login."""
+    # Delay the first pass to let the UI start and local configuration settle.
+    if BACKUP_STOP.wait(60):
+        return
+    while not BACKUP_STOP.is_set():
+        try:
+            raw = read_env_value('ARCHICORD_BACKUP_INTERVAL_HOURS') or '24'
+            hours = int(raw)
+            if not 0 <= hours <= 168:
+                raise ValueError("Invalid backup interval")
+            if hours:
+                existing = list_backups(ROOT)
+                newest = ((ROOT / 'backups' / existing[0]['name']).stat().st_mtime
+                          if existing else 0)
+                if __import__('time').time() - newest >= hours * 3600:
+                    with LOCK:
+                        result = create_backup(ROOT, keep=10)
+                    LOG.append('[Backups] Automatic local backup: ' + result['name'])
+        except (OSError, ValueError, TypeError) as exc:
+            LOG.append('[Backups] Automatic backup failed: ' + type(exc).__name__)
+        if BACKUP_STOP.wait(600):
+            return
+
+
+BACKUP_STOP = threading.Event()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Lokale ArchiCord WebUI')
     parser.add_argument('--port', type=int, default=8765, help='Lokaler WebUI-Port (Standard 8765)')
@@ -736,6 +843,7 @@ def main():
     if not 1 <= args.port <= 65535:
         parser.error('Port muss zwischen 1 und 65535 liegen.')
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
+    threading.Thread(target=auto_backup_loop, daemon=True, name='ArchiCordAutoBackup').start()
     print(f'ArchiCord WebUI: http://127.0.0.1:{args.port}', flush=True)
     print('Nur lokal erreichbar. Strg+C zum Beenden. Bot über die WebUI starten.', flush=True)
     try:
@@ -743,6 +851,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        BACKUP_STOP.set()
         server.server_close()
         shutdown()
 

@@ -40,7 +40,7 @@ Progression-item and trap counters are **not** shown as part of the live doable-
 
 <div align="center">
 
-<img src="webui_assets/archicord-logo.svg" alt="ArchiCord mascot and headset logo" width="128"/>
+<img src="webui_assets/archicord-logo.svg" alt="ArchiCord rainbow portal mascot" width="128"/>
 
 </div>
 
@@ -120,6 +120,29 @@ The Web UI now includes a **Resources** tab at **http://127.0.0.1:8765/resources
 ArchiCord can announce **new stable releases of the official Archipelago application** in a Discord channel. In the Web UI's Bot Control settings, enter the numeric channel ID for `ARCHIPELAGO_RELEASE_CHANNEL_ID`, save, and **restart the bot**. ArchiCord checks GitHub about every six hours while running (`ARCHIPELAGO_RELEASE_CHECK_INTERVAL`, minimum one hour).
 
 On first use, ArchiCord stores the current release as a baseline **without posting an old version**. Later stable releases are announced once per channel and remain recorded across bot restarts and seed changes. Failed sends will be retried. This does not check for individual APWorld updates or install software automatically. Internet access to GitHub and Discord message permissions are required.
+
+## 🌈 ArchiCord 3.0 — Multiworld Control Center
+
+The optional new dashboard adds **ten views** while keeping the original Bot Control, APWorld Manager and Resources pages:
+
+| View | What it shows |
+| --- | --- |
+| 📊 [Dashboard](http://127.0.0.1:8765/dashboard) | Seed summary, player status, goals, DeathLinks and checks |
+| 👥 Players | Per-player online status, games and confirmed doable counts |
+| 🎯 Checks | Search and filter completed, missing and tracker-confirmed doable locations by player |
+| 🕘 History | Saved multiworld sessions and per-seed summaries |
+| 🎁 Item Routes | Newly recorded sender → receiver item and trap events |
+| 💚 Health | Discord, Archipelago, Universal Tracker and snapshot freshness |
+| 💾 Backups | Local create, checksum verification, restore preview and stopped-bot restore |
+| 🧩 Compatibility | Safe APWorld manifest diagnostics, duplicates and unknown versions |
+| 🔔 Notifications | Optional per-event channels, mute switches, cooldowns and separate DE/EN choices |
+| 🏆 Achievements | Read-only per-seed milestones without default Discord spam |
+
+**Automatic local backups** are controlled with ARCHICORD_BACKUP_INTERVAL_HOURS (default 24, 0 disables). Archives stay in the ignored backups/ directory and may include **private tokens and seed data**; never upload them. A restore requires stopping the bot first.
+
+The new dashboard uses stored snapshots, not fabricated sample data. Item routes only include events accepted after the upgrade. APWorld compatibility status is deliberately **unknown** without a verified matching launcher/YAML installation. Existing command names, DeathLink milestones and seed storage stay unchanged.
+
+See [ArchiCord 3.0 setup, feature boundaries and safety checklist](docs/ARCHICORD_3_FEATURES.md).
 
 ## 🧪 Testing and compatibility
 

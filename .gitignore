@@ -23,6 +23,8 @@ build/
 dist/
 
 # Bot runtime data (may contain private seed/player information)
+backups/
+
 archicord_data/
 deathlinks/
 archicord_hints.json
