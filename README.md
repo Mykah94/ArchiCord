@@ -121,6 +121,28 @@ ArchiCord can announce **new stable releases of the official Archipelago applica
 
 On first use, ArchiCord stores the current release as a baseline **without posting an old version**. Later stable releases are announced once per channel and remain recorded across bot restarts and seed changes. Failed sends will be retried. This does not check for individual APWorld updates or install software automatically. Internet access to GitHub and Discord message permissions are required.
 
+## 🎥 Overlay Studio, Slot Claims, Wishlists & Run Threads
+
+ArchiCord includes a separate **local Overlay Studio** for OBS Browser Sources,
+theme/profile editing, desktop log popouts and optional WAV sound previews.
+On Windows, start with `START_OVERLAY_STUDIO.bat` for the browser editor or
+`START_OVERLAY_DESKTOP.bat` for the native desktop editor.
+The browser studio is served **locally at http://127.0.0.1:8766/**.
+
+Multiworld rooms also support **Discord /run, /slot and /wishlist commands**.
+Run threads can be created automatically per guild/seed/team or manually
+by a Discord moderator. Players can claim slots and subscribe privately to
+exact-match item wishlist notifications; these never cause additional
+public non-progression item embeds.
+
+**Per-room Universal Tracker:** configure launcher and paths under
+[Tracker Settings](http://127.0.0.1:8765/tracker-settings). Each room has
+independent, exact-match, fail-closed confirmed doable checks, available
+through its Multiworld card. Unknown UT logic is never guessed.
+
+See [Overlay Studio, community commands and UT guide](docs/OVERLAY_STUDIO_AND_COMMUNITY.md).
+Live Windows/OBS/Discord/UT integration testing is still required.
+
 ## 🌍 Parallel Archipelago seeds and OBS live logs
 
 ArchiCord can now connect to **up to 12 additional Multiworld rooms simultaneously** through the same Discord bot login. Each room has an independent AP WebSocket, Discord guild/channel mapping, seed/team storage, goals, DeathLink leaderboard and status. Configure rooms from the new **[Multiworlds](http://127.0.0.1:8765/instanzen)** page; changes are applied while the bot runs.
