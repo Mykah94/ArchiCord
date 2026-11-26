@@ -25,6 +25,7 @@ from tracker.instances_webui import render_instances
 from tracker.obs_log_webui import render_obs_log
 from tracker.tracker_settings import load_settings,save_settings,diagnose
 from tracker.tracker_ui import render as render_tracker_settings
+from tracker.room_checks_webui import render as render_room_checks
 from tracker.overlay_events import recent_events
 from tracker.multi_instances import instance_directory
 from archicord_dashboard import PAGES as DASHBOARD_PAGES, render_dashboard
@@ -716,6 +717,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+        elif parsed_url.path == '/room-checks':
+            ident=parse_qs(parsed_url.query).get('instance',[''])[0]
+            try:
+                if ident not in {row['id'] for row in read_instances(v3_data_directory())}:
+                    return self.reply(404,{'ok':False,'message':'Unknown instance'})
+            except (OSError,ValueError):
+                return self.reply(404,{'ok':False,'message':'Unknown instance'})
+            raw=render_room_checks(BASE_STYLE,ident).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type','text/html; charset=utf-8')
+            self.send_header('Content-Security-Policy',"default-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'")
+            self.send_header('Cache-Control','no-store')
+            self.send_header('Content-Length',str(len(raw)))
+            self.end_headers();self.wfile.write(raw)
         elif self.path == '/tracker-settings':
             raw=render_tracker_settings(BASE_STYLE,CSRF).encode('utf-8')
             self.send_response(200)
