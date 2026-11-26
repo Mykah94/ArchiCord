@@ -314,39 +314,41 @@ class RoomObserver:
     async def run(self) -> None:
         await self.client.wait_until_ready()
         watcher = asyncio.create_task(self.room_port_watcher())
-        while not self.client.is_closed():
-            try:
-                if self.config.get('room_url') and time.monotonic() - self.room_checked >= 60:
-                    await self.check_room_port()
-                async with websockets.connect(self.current_url, max_size=32 * 1024 * 1024,
-                                             ping_interval=20, ping_timeout=20) as ws:
-                    self.ws = ws
-                    async for raw in ws:
-                        try:
-                            packets = json.loads(raw)
-                            if isinstance(packets, dict):
-                                packets = [packets]
-                            if isinstance(packets, list):
-                                for packet in packets[:200]:
-                                    if isinstance(packet, dict):
-                                        try:
-                                            await self.handle(packet)
-                                        except (TypeError, ValueError, KeyError, OSError) as exc:
-                                            self.error = f"Packet error: {type(exc).__name__}"
-                        except (ValueError, UnicodeError):
-                            self.error = "Malformed Archipelago packet"
-            except asyncio.CancelledError:
-                raise
-            except (OSError, TimeoutError, websockets.exceptions.WebSocketException) as exc:
-                self.error = f"Connection error: {type(exc).__name__}"
-            finally:
-                self.ws = None
-                self.connected = False
-                self.online.clear()
-                self.write_status()
-            await asyncio.sleep(5)
-        watcher.cancel()
-        await asyncio.gather(watcher, return_exceptions=True)
+        try:
+            while not self.client.is_closed():
+                try:
+                    if self.config.get('room_url') and time.monotonic() - self.room_checked >= 60:
+                        await self.check_room_port()
+                    async with websockets.connect(self.current_url, max_size=32 * 1024 * 1024,
+                                                 ping_interval=20, ping_timeout=20) as ws:
+                        self.ws = ws
+                        async for raw in ws:
+                            try:
+                                packets = json.loads(raw)
+                                if isinstance(packets, dict):
+                                    packets = [packets]
+                                if isinstance(packets, list):
+                                    for packet in packets[:200]:
+                                        if isinstance(packet, dict):
+                                            try:
+                                                await self.handle(packet)
+                                            except (TypeError, ValueError, KeyError, OSError) as exc:
+                                                self.error = f"Packet error: {type(exc).__name__}"
+                            except (ValueError, UnicodeError):
+                                self.error = "Malformed Archipelago packet"
+                except asyncio.CancelledError:
+                    raise
+                except (OSError, TimeoutError, websockets.exceptions.WebSocketException) as exc:
+                    self.error = f"Connection error: {type(exc).__name__}"
+                finally:
+                    self.ws = None
+                    self.connected = False
+                    self.online.clear()
+                    self.write_status()
+                await asyncio.sleep(5)
+        finally:
+            watcher.cancel()
+            await asyncio.gather(watcher, return_exceptions=True)
 
 
 class MultiSeedManager:
