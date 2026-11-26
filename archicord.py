@@ -16,6 +16,7 @@ import os
 import re
 import uuid
 from tracker.ut_bridge import fetch_slot, write_snapshot
+from archipelago_releases import check_release_once
 from tracker.apworld_manager import selected_games, selection_fingerprint, load_selection
 from typing import Any, Literal
 
@@ -83,6 +84,8 @@ GOAL_CHANNEL_ID = optional_channel_env("GOAL_CHANNEL_ID", ITEM_CHANNEL_ID)
 FEATURES_CHANNEL_ID = optional_channel_env("FEATURES_CHANNEL_ID", STATUS_CHANNEL_ID or ITEM_CHANNEL_ID)
 FEATURES_ANNOUNCE = os.environ.get("ARCHICORD_FEATURES_ANNOUNCE", "true").lower() in ("true", "1", "yes")
 DISCORD_GUILD_ID = optional_channel_env("DISCORD_GUILD_ID")
+ARCHIPELAGO_RELEASE_CHANNEL_ID = optional_channel_env("ARCHIPELAGO_RELEASE_CHANNEL_ID")
+ARCHIPELAGO_RELEASE_CHECK_INTERVAL = max(3600, int(os.environ.get("ARCHIPELAGO_RELEASE_CHECK_INTERVAL", "21600")))
 
 DATA_DIR = Path(os.environ.get("ARCHICORD_DATA_DIR", "archicord_data"))
 POLL_INTERVAL = max(60, int(os.environ.get("AP_POLL_INTERVAL", "120")))
@@ -470,6 +473,43 @@ class ArchipelagoDiscordBot(discord.Client):
         asyncio.create_task(self.board_loop())
         asyncio.create_task(self.data_poll_loop())
         asyncio.create_task(self.universal_tracker_loop())
+        if ARCHIPELAGO_RELEASE_CHANNEL_ID:
+            asyncio.create_task(self.archipelago_release_loop())
+
+    async def archipelago_release_loop(self) -> None:
+        """Announce official stable Archipelago releases only after first baseline."""
+        await self.wait_until_ready()
+        channel_id = ARCHIPELAGO_RELEASE_CHANNEL_ID
+        if not channel_id:
+            return
+        state_path = DATA_DIR / "archipelago_release_announcements.json"
+
+        async def announce(release: dict[str, str]) -> bool:
+            embed = discord.Embed(
+                title="🌈 New Archipelago release: " + release["version"],
+                description=(
+                    "A new stable version of the official Archipelago software is available.\\n\\n"
+                    f"**Official download and release notes:** {release['url']}"
+                ),
+                color=0x9370F5,
+                url=release["url"],
+            )
+            embed.set_footer(text="ArchiCord • Official Archipelago release notifications")
+            return await self.send_to_channel(channel_id, embed)
+
+        while not self.is_closed():
+            try:
+                status = await check_release_once(channel_id, state_path, announce)
+                if status == "baseline":
+                    print("[Releases] Baseline recorded; next stable version will be announced.")
+                elif status == "announced":
+                    print("[Releases] New official version announced.")
+                elif status == "send-failed":
+                    print("[Releases] Announcement failed; will retry.")
+            except Exception as exc:
+                # Do not stop the Discord bot if GitHub is unreachable or malformed.
+                print(f"[Releases] Check failed: {type(exc).__name__}: {exc}")
+            await asyncio.sleep(ARCHIPELAGO_RELEASE_CHECK_INTERVAL)
 
     async def on_ready(self) -> None:
         print(f"ArchiCord 2.0 eingeloggt als {self.user}")
