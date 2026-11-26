@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="ArchiCord dark illustrated background">
+<title>ArchiCord background</title>
+<defs><linearGradient id="sky" x2="1" y2="1"><stop stop-color="#12182b"/><stop offset=".55" stop-color="#1b2141"/><stop offset="1" stop-color="#141928"/></linearGradient><radialGradient id="glow"><stop stop-color="#7c65cb" stop-opacity=".30"/><stop offset="1" stop-color="#7c65cb" stop-opacity="0"/></radialGradient></defs>
+<rect width="1600" height="900" fill="url(#sky)"/>
+<ellipse cx="1180" cy="150" rx="650" ry="460" fill="url(#glow)"/>
+<g fill="none" stroke="#8884cc" opacity=".22"><path d="M-100 630Q220 480 480 620T1030 600T1760 580"/><path d="M-80 690Q250 535 510 680T1090 655T1700 645"/><path d="M-80 750Q230 605 540 728T1140 715T1710 704"/></g>
+<g opacity=".48" fill="#b5b9ee"><circle cx="130" cy="112" r="2"/><circle cx="305" cy="190" r="2"/><circle cx="625" cy="88" r="2"/><circle cx="1210" cy="120" r="2"/><circle cx="1450" cy="260" r="2"/><circle cx="945" cy="235" r="1.5"/></g>
+<path d="M0 800L160 685 286 752 441 608 625 769 801 667 946 782 1110 620 1295 740 1460 650 1600 730V900H0Z" fill="#171b31" opacity=".78"/>
+<path d="M0 856L170 781 300 835 470 751 590 810 730 738 925 852 1095 785 1315 832 1478 742 1600 809V900H0Z" fill="#101526"/>
+</svg>
