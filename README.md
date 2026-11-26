@@ -113,6 +113,14 @@ See [Universal Tracker setup](docs/UNIVERSAL_TRACKER.md) for limitations and dia
 
 Discord permissions: **View Channels**, **Send Messages**, **Embed Links**, **Read Message History** and **Use Application Commands**. Invite with the **`bot`** and **`applications.commands`** scopes. No privileged Gateway intents are required.
 
+## 📚 Resources & release announcements
+
+The Web UI now includes a **Resources** tab at **http://127.0.0.1:8765/resources**, linking to the [official Archipelago website](https://archipelago.gg/) and the [official software release downloads](https://github.com/ArchipelagoMW/Archipelago/releases/latest).
+
+ArchiCord can announce **new stable releases of the official Archipelago application** in a Discord channel. In the Web UI's Bot Control settings, enter the numeric channel ID for `ARCHIPELAGO_RELEASE_CHANNEL_ID`, save, and **restart the bot**. ArchiCord checks GitHub about every six hours while running (`ARCHIPELAGO_RELEASE_CHECK_INTERVAL`, minimum one hour).
+
+On first use, ArchiCord stores the current release as a baseline **without posting an old version**. Later stable releases are announced once per channel and remain recorded across bot restarts and seed changes. Failed sends will be retried. This does not check for individual APWorld updates or install software automatically. Internet access to GitHub and Discord message permissions are required.
+
 ## 🧪 Testing and compatibility
 
 ```bash
