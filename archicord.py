@@ -456,6 +456,8 @@ class ArchipelagoDiscordBot(discord.Client):
         self.board_event: asyncio.Event | None = None
         self.ut_wakeup: asyncio.Event | None = None
         self.notification_last_sent: dict[str, float] = {}
+        self.live_snapshot_dirty = True
+        self.last_live_snapshot = 0.0
 
     async def setup_hook(self) -> None:
         self.board_event = asyncio.Event()
@@ -476,6 +478,7 @@ class ArchipelagoDiscordBot(discord.Client):
         asyncio.create_task(self.board_loop())
         asyncio.create_task(self.data_poll_loop())
         asyncio.create_task(self.universal_tracker_loop())
+        asyncio.create_task(self.dashboard_snapshot_loop())
         if ARCHIPELAGO_RELEASE_CHANNEL_ID:
             asyncio.create_task(self.archipelago_release_loop())
 
@@ -620,7 +623,7 @@ class ArchipelagoDiscordBot(discord.Client):
         return saved
 
     def request_board_update(self, *board_names: str) -> None:
-        self.publish_live_snapshot()
+        self.live_snapshot_dirty = True
         self.dirty_boards.update(board_names or ("status", "hints", "deaths", "stats"))
         if self.board_event:
             self.board_event.set()
@@ -635,6 +638,17 @@ class ArchipelagoDiscordBot(discord.Client):
         if self.state:
             add_activity(self.state, kind, **fields)
 
+    async def dashboard_snapshot_loop(self) -> None:
+        """Batch dashboard disk I/O, without slowing down Discord packet handling."""
+        await self.wait_until_ready()
+        while not self.is_closed():
+            now = __import__("time").monotonic()
+            if self.live_snapshot_dirty or now - self.last_live_snapshot >= 30:
+                self.live_snapshot_dirty = False
+                self.publish_live_snapshot()
+                self.last_live_snapshot = now
+            await asyncio.sleep(3)
+
     def publish_live_snapshot(self) -> None:
         """Expose sanitized per-seed progress to the local WebUI only."""
         if not self.seed_name or not self.state or self.own_slot is None:
@@ -643,7 +657,24 @@ class ArchipelagoDiscordBot(discord.Client):
             own_game = self.resolve_game(self.own_slot)
             locations = self.location_names.get(own_game, {})
             own = self.state.get("own_checks", {})
-            doable = self.slot_doable(self.own_slot) if self.ap_connected else None
+            # Read the validated tracker snapshot once. A large Multiworld may
+            # include hundreds of slots; per-slot file reads would block events.
+            external = self.external_checks() if self.ap_connected else {}
+            def confirmed_for(slot):
+                result = external.get(str(slot))
+                if not isinstance(result, dict) or not isinstance(result.get("doable"), list):
+                    return None
+                try:
+                    doable_ids = {int(n) for n in result["doable"]}
+                    checked_ids = {int(n) for n in result.get("checked", [])}
+                    if slot == self.own_slot and own.get("known"):
+                        checked_ids.update(int(n) for n in own.get("checked", []))
+                    return sorted(doable_ids - checked_ids)
+                except (ValueError, TypeError):
+                    return None
+            slots = self.status_slots[:300]
+            confirmed = {slot: confirmed_for(slot) for slot in slots}
+            doable = confirmed.get(self.own_slot)
             timestamp = __import__("time").time()
             snapshot = {
                 "seed": str(self.seed_name)[:160], "team": self.team,
@@ -668,8 +699,8 @@ class ArchipelagoDiscordBot(discord.Client):
                      "doable_label": (
                          "unknown" if not self.ap_connected else
                          (str(len(result)) if result is not None else "no logic data"))}
-                    for slot in self.status_slots[:300]
-                    for result in [self.slot_doable(slot) if self.ap_connected else None]
+                    for slot in slots
+                    for result in [confirmed.get(slot)]
                 ],
                 "item_routes": item_routes(self.state),
                 "own_slot": self.own_slot,
@@ -678,9 +709,9 @@ class ArchipelagoDiscordBot(discord.Client):
             # Other players have only confirmed UT-doable locations. Their
             # missing/checked totals cannot be inferred from our bot slot.
             player_checks = {}
-            for slot in self.status_slots[:300]:
+            for slot in slots:
                 known = self.location_names.get(self.resolve_game(slot), {})
-                available = self.slot_doable(slot) if self.ap_connected else None
+                available = confirmed.get(slot)
                 if slot == self.own_slot:
                     player_checks[str(slot)] = snapshot["checks"][:600]
                 elif available is None:
@@ -1580,7 +1611,7 @@ class ArchipelagoDiscordBot(discord.Client):
         await self.wait_until_ready()
         while not self.is_closed():
             await asyncio.sleep(POLL_INTERVAL)
-            self.publish_live_snapshot()
+            self.live_snapshot_dirty = True
             # Externe Tracker-Dateien können sich ohne AP-Ereignis ändern.
             if self.state:
                 # Auch extern aktualisierte Seed-DeathLink-Dateien live übernehmen.
