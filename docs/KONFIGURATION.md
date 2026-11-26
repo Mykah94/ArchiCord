@@ -21,6 +21,12 @@ Optional channel settings remain available:
 
 `ARCHICORD_AP_INSTALL_DIR` and `ARCHICORD_APWORLD_DIRS` specify local directories for APWorld discovery. `ARCHICORD_FEATURES_ANNOUNCE` controls the once-per-seed feature announcement; `ARCHICORD_DEBUG` enables optional debug output; `USE_ANSI_ITEM_NAMES` enables ANSI item-name formatting.
 
+## Official Archipelago release announcements
+
+Set `ARCHIPELAGO_RELEASE_CHANNEL_ID` to the numeric ID of the Discord channel that should receive official Archipelago software release announcements. Leave it empty to disable monitoring. You can edit the channel in the Web UI Bot Control page.
+
+`ARCHIPELAGO_RELEASE_CHECK_INTERVAL` sets the polling frequency in seconds (default **21600**, six hours; minimum **3600**, one hour). Checking occurs only while the bot runs. The initial version is saved without notifying. A subsequent stable release is announced once per channel. State is kept in `ARCHICORD_DATA_DIR/archipelago_release_announcements.json` and is independent of game seeds.
+
 ## Credential handling
 
 Leaving the Discord token or Archipelago password field blank in the Web UI **keeps the existing saved value**. To change a secret, provide the new value explicitly.
