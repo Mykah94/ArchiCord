@@ -430,8 +430,16 @@ class MultiSeedManager:
                     await self.stop(ident)
                 for ident, config in wanted.items():
                     current = self.observers.get(ident)
-                    if current and current.config == config and not self.tasks[ident].done():
-                        continue
+                    if current and not self.tasks[ident].done():
+                        if current.config == config:
+                            continue
+                        # Channel labels and guild assignments can change
+                        # without tearing down the Archipelago WebSocket.
+                        connection_fields = ("ap_url", "room_url", "slot", "game", "password")
+                        if all(current.config.get(k) == config.get(k) for k in connection_fields):
+                            current.config = dict(config)
+                            current.write_status()
+                            continue
                     if current:
                         await self.stop(ident)
                     current = RoomObserver(self.client, config, self.data_dir)
