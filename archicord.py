@@ -391,8 +391,63 @@ class ArchiCommands(app_commands.Group):
             return
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    async def multi_room_reply(self, interaction: discord.Interaction,
+                               category: str, instanz: str | None) -> bool:
+        """Route existing slash commands to the requested independent AP room."""
+        rooms = self.bot.multi_seed.for_guild(interaction.guild_id)
+        if instanz is None and self.bot.state:
+            return False  # Existing primary-seed command behavior remains.
+        if instanz:
+            rooms = [room for room in rooms if room.id.casefold() == instanz.casefold()]
+        if not rooms:
+            await interaction.response.send_message(
+                "Keine passende Multiworld-Instanz verbunden. IDs stehen im WebUI-Reiter Multiworlds.",
+                ephemeral=True)
+            return True
+        if len(rooms) != 1:
+            names = ", ".join(sorted(room.id for room in rooms))[:1200]
+            await interaction.response.send_message(
+                "Mehrere Seeds aktiv. Bitte den Parameter instanz angeben: " + names,
+                ephemeral=True)
+            return True
+        room = rooms[0]
+        if not room.connected:
+            await interaction.response.send_message(
+                f"Multiworld {room.id} ist gerade nicht verbunden.", ephemeral=True)
+            return True
+        state = room.state
+        deaths = state.get("death_counts", {})
+        goals = set(str(x) for x in state.get("goals", []))
+        if category == "status":
+            lines = [f"{'🟢' if slot in room.online else '⚪'} "
+                     f"**{safe_text(name, 100)}** · {safe_text(room.game(slot), 100)}"
+                     for slot, name in sorted(room.players.items())[:25]]
+            title = "👥 Spielerstatus"
+            body = "\\n".join(lines) or "Noch keine Spieler."
+        elif category == "deaths":
+            title = "☠️ DeathLink-Rangliste"
+            ranked = sorted(deaths.items(), key=lambda pair: (-pair[1], pair[0]))
+            body = "\\n".join(f"**{n}.** {safe_text(name, 80)} — {count}"
+                             for n, (name, count) in enumerate(ranked[:25], 1)) or "Noch keine Tode."
+        elif category == "hints":
+            title = "🔎 Progression-Hints"
+            body = f"Gespeicherte Hint-Ereignisse: {len(state.get('hints_seen', []))}. Einzelne Hint-Details sind für weitere Räume noch nicht als Board verfügbar."
+        else:
+            title = "📊 Multiworld-Fortschritt"
+            body = (f"**Spieler:** {len(room.players)}\\n"
+                    f"**Ziele:** {len(goals)}\\n"
+                    f"**DeathLinks:** {sum(deaths.values())}\\n"
+                    "Logikbasierte Doable Checks sind für zusätzliche Räume noch nicht verfügbar.")
+        embed = discord.Embed(title=f"{title} · {safe_text(room.config['name'], 65)}",
+                              description=body[:3800], color=COLOR_STATS)
+        embed.set_footer(text=f"Instanz: {room.id} · Seed: {plain_text(room.seed, 65)}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return True
+
     @app_commands.command(name="status", description="Online-Status aller Spieler")
-    async def status(self, interaction: discord.Interaction):
+    async def status(self, interaction: discord.Interaction, instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "status", instanz):
+            return
         await self.reply(interaction, self.bot.make_status_board())
 
     @app_commands.command(name="hints", description="Offene oder gefundene Progression-Hints")
@@ -402,23 +457,33 @@ class ArchiCommands(app_commands.Group):
         interaction: discord.Interaction,
         status: Literal["offen", "gefunden", "alle"] = "offen",
         seite: int = 1,
+        instanz: str | None = None,
     ):
+        if await self.multi_room_reply(interaction, "hints", instanz):
+            return
         if seite < 1 or seite > 10000:
             await interaction.response.send_message("Seite muss zwischen 1 und 10000 liegen.", ephemeral=True)
             return
         await self.reply(interaction, self.bot.make_hint_page(status, seite))
 
     @app_commands.command(name="deaths", description="DeathLink-Rangliste dieses Seeds")
-    async def deaths(self, interaction: discord.Interaction):
+    async def deaths(self, interaction: discord.Interaction, instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "deaths", instanz):
+            return
         await self.reply(interaction, self.bot.make_death_board())
 
     @app_commands.command(name="fortschritt", description="Locations und beobachtete Items")
     @app_commands.describe(spieler="Name oder Slotnummer (optional)")
-    async def fortschritt(self, interaction: discord.Interaction, spieler: str | None = None):
+    async def fortschritt(self, interaction: discord.Interaction, spieler: str | None = None,
+                         instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "progress", instanz):
+            return
         await self.reply(interaction, self.bot.make_progress_embed(spieler))
 
     @app_commands.command(name="statistik", description="Seed-Statistik und Spielerfortschritt")
-    async def statistik(self, interaction: discord.Interaction):
+    async def statistik(self, interaction: discord.Interaction, instanz: str | None = None):
+        if await self.multi_room_reply(interaction, "stats", instanz):
+            return
         await self.reply(interaction, self.bot.make_stats_board())
 
     @app_commands.command(name="funktionen", description="Alle Funktionen von ArchiCord")
